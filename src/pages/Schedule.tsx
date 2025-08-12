@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import CalendarView from "@/components/planner/CalendarView";
 import WarningsBanner from "@/components/planner/WarningsBanner";
-
+import AssignmentControls from "@/components/planner/AssignmentControls";
 import { 
   DAYS, 
   DayKey, 
@@ -308,6 +308,24 @@ const SchedulePage = () => {
               </CardContent>
             </Card>
 
+            {/* Assignment Controls */}
+            <AssignmentControls
+              weights={weights}
+              onWeightsChange={setWeights}
+              solver={solver}
+              onSolverChange={setSolver}
+              teamClusters={clusterTeams}
+              onTeamClustersChange={setClusterTeams}
+              deptCapacity={deptCap}
+              onDeptCapacityChange={setDeptCap}
+              maxAssignments={undefined}
+              onMaxAssignmentsChange={() => {}}
+              onAssign={assignSeatsForDay}
+              onReset={handleReset}
+              onSave={handleSave}
+              onLoadCsv={() => {}} // TODO: Implement CSV upload
+              loading={loading}
+            />
 
             {/* Generate Schedule Button */}
             <Button 
