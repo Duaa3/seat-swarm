@@ -183,11 +183,15 @@ const AssignmentResults: React.FC<AssignmentResultsProps> = ({
 
       {/* Issues & Warnings */}
       {(unassigned.length > 0 || unusedSeats.length > 0) && (
-        <Card className="border-orange-200 bg-orange-50/50">
+        <Card className={unusedSeats.length > seats.length * 0.5 ? "border-blue-200 bg-blue-50/50" : "border-orange-200 bg-orange-50/50"}>
           <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2 text-orange-700">
-              <AlertTriangle className="h-4 w-4" />
-              Issues Found
+            <CardTitle className={`text-sm flex items-center gap-2 ${unusedSeats.length > seats.length * 0.5 ? "text-blue-700" : "text-orange-700"}`}>
+              {unusedSeats.length > seats.length * 0.5 ? (
+                <Info className="h-4 w-4" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" />
+              )}
+              {unusedSeats.length > seats.length * 0.5 ? "Capacity Status" : "Issues Found"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -216,9 +220,19 @@ const AssignmentResults: React.FC<AssignmentResultsProps> = ({
             
             {unusedSeats.length > 0 && (
               <div>
-                <Badge variant="secondary" className="mb-2">
-                  {unusedSeats.length} Unused Seats
-                </Badge>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant={unusedSeats.length > seats.length * 0.5 ? "default" : "secondary"} className="mb-0">
+                    {unusedSeats.length} Unused Seats
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    ({((seats.length - unusedSeats.length) / seats.length * 100).toFixed(1)}% utilization)
+                  </span>
+                </div>
+                {unusedSeats.length > seats.length * 0.5 && (
+                  <div className="text-xs text-blue-600 mb-2 p-2 bg-blue-50 rounded">
+                    💡 This is normal - having unused seats provides flexibility for growth and preferences
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-1">
                   {unusedSeats.slice(0, 8).map(seatId => (
                     <Badge key={seatId} variant="outline" className="text-xs">

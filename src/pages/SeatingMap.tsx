@@ -37,14 +37,21 @@ const SeatingMapPage = () => {
   const [loading, setLoading] = React.useState(false);
   const [meta, setMeta] = React.useState<any>(null);
   
-  // Mock schedule for demonstration
-  const [schedule] = React.useState<Record<DayKey, string[]>>(() => ({
-    Mon: employees.slice(0, 8).map(e => e.employee_id),
-    Tue: employees.slice(2, 10).map(e => e.employee_id),
-    Wed: employees.slice(0, 6).map(e => e.employee_id),
-    Thu: employees.slice(1, 9).map(e => e.employee_id),
-    Fri: employees.slice(0, 5).map(e => e.employee_id),
-  }));
+  // Realistic schedule with 60-80% office attendance per day
+  const [schedule] = React.useState<Record<DayKey, string[]>>(() => {
+    const getRandomEmployees = (count: number) => {
+      const shuffled = [...employees].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, count).map(e => e.employee_id);
+    };
+    
+    return {
+      Mon: getRandomEmployees(65), // 65 employees (66% of seats)
+      Tue: getRandomEmployees(72), // 72 employees (73% of seats) 
+      Wed: getRandomEmployees(58), // 58 employees (59% of seats)
+      Thu: getRandomEmployees(68), // 68 employees (69% of seats)
+      Fri: getRandomEmployees(45), // 45 employees (46% of seats) - lighter Friday
+    };
+  });
 
   const dayStats = React.useMemo(() => {
     const scheduled = schedule[selectedDay]?.length || 0;
