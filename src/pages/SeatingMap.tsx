@@ -37,7 +37,7 @@ const SeatingMapPage = () => {
   const [loading, setLoading] = React.useState(false);
   const [meta, setMeta] = React.useState<any>(null);
   
-  // Realistic schedule with 60-80% office attendance per day
+  // Realistic schedule with 60-80% office attendance per day (adjusted for 350 employees)
   const [schedule] = React.useState<Record<DayKey, string[]>>(() => {
     const getRandomEmployees = (count: number) => {
       const shuffled = [...employees].sort(() => Math.random() - 0.5);

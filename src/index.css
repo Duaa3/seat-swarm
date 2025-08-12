@@ -63,7 +63,7 @@ All colors MUST be HSL.
     --team-5: 200 98% 39%;  /* Cyan - Ops */
     --team-6: 262 83% 58%;  /* Violet - Data */
     --team-7: 350 89% 60%;  /* Pink - QA */
-    --team-8: 60 100% 50%;  /* Yellow - Other */
+    --team-8: 160 60% 45%;  /* Teal - Other (replaced yellow) */
 
     /* Team gradient variants */
     --team-gradient-1: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 50%));
@@ -73,7 +73,8 @@ All colors MUST be HSL.
     --team-gradient-5: linear-gradient(135deg, hsl(200 98% 39%), hsl(200 98% 29%));
     --team-gradient-6: linear-gradient(135deg, hsl(262 83% 58%), hsl(262 83% 48%));
     --team-gradient-7: linear-gradient(135deg, hsl(350 89% 60%), hsl(350 89% 50%));
-    --team-gradient-8: linear-gradient(135deg, hsl(60 100% 50%), hsl(60 100% 40%));
+    --team-gradient-8: linear-gradient(135deg, hsl(160 60% 45%), hsl(160 60% 35%));
+    
   }
 
   .dark {

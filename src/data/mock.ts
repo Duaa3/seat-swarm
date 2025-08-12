@@ -56,7 +56,7 @@ export const DEFAULT_WEIGHTS: Weights = {
   w_zone: 0.5,
 };
 
-// Generate 400 Mock Employees
+// Generate 350 Mock Employees
 function generateEmployees(): Employee[] {
   const firstNames = ["Aisha", "Hilal", "Maya", "David", "Sofia", "James", "Elena", "Ahmad", "Lisa", "Roberto", "Sarah", "Michael", "Priya", "Carlos", "Emma", "Hassan", "Fatima", "Alex", "Nina", "Omar", "Lucia", "Mark", "Zara", "Sam", "Leila", "Kevin", "Amara", "Ben", "Yasmin", "Ryan"];
   const lastNames = ["Rahman", "Ahmed", "Chen", "Kim", "Garcia", "Wilson", "Petrov", "Hassan", "Thompson", "Silva", "Johnson", "Brown", "Patel", "Martinez", "Davis", "Ali", "Khan", "Lee", "Miller", "Jones", "Smith", "Lopez", "Clark", "Nguyen", "Taylor", "White", "Anderson", "Williams", "Jackson", "Martin"];
@@ -66,7 +66,7 @@ function generateEmployees(): Employee[] {
   const zones = ["ZoneA", "ZoneB", "ZoneC"];
   const daysCombos = [["Mon","Wed"], ["Tue","Thu"], ["Mon","Fri"], ["Mon","Tue","Wed"], ["Wed","Thu"], ["Fri"], ["Mon","Wed","Fri"], ["Tue","Thu"], ["Mon","Tue","Wed","Thu"], ["Wed","Thu","Fri"]];
 
-  return Array.from({ length: 400 }, (_, i) => {
+  return Array.from({ length: 350 }, (_, i) => {
     const empId = String(i + 1).padStart(3, '0');
     return {
       employee_id: `E${empId}`,
