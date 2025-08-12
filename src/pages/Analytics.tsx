@@ -4,44 +4,56 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart3, TrendingUp, Users, MapPin, Calendar, Download } from "lucide-react";
-import { employees, allSeats, allTeams, allDepts } from "@/data/mock";
+import { MOCK_EMPLOYEES, MOCK_SEATS, allTeams, allDepartments } from "@/data/mock";
 import { DAYS, DayKey } from "@/types/planner";
 import { toast } from "@/hooks/use-toast";
 
 const Analytics = () => {
   const [selectedPeriod, setSelectedPeriod] = React.useState<"week" | "month" | "quarter">("week");
 
-  const analyticsData = React.useMemo(() => {
-    // Mock analytics data
-    const teamUtilization = allTeams.map(team => ({
-      team,
-      utilization: 70 + Math.random() * 25, // 70-95%
-      avgDaysPerWeek: 2.5 + Math.random() * 1.5, // 2.5-4 days
-      employees: employees.filter(e => e.team === team).length,
-    }));
+  // Use new data structure
+  const employees = MOCK_EMPLOYEES;
+  const allSeats = MOCK_SEATS;
+  const allDepts = allDepartments;
 
-    const dailyOccupancy = DAYS.map(day => ({
-      day,
-      occupancy: 60 + Math.random() * 30, // 60-90%
-      capacity: allSeats.length,
-      scheduled: Math.floor((60 + Math.random() * 30) * allSeats.length / 100),
-    }));
+  const stats = React.useMemo(() => {
+    const totalEmployees = employees.length;
+    const totalSeats = allSeats.length;
 
-    const deptMetrics = allDepts.map(dept => ({
-      dept,
-      employees: employees.filter(e => e.dept === dept).length,
-      avgUtilization: 65 + Math.random() * 25,
-      hybridRatio: 0.6 + Math.random() * 0.3,
-    }));
+    const analyticsData = React.useMemo(() => {
+      // Mock analytics data
+      const teamUtilization = allTeams.map(team => ({
+        team,
+        utilization: 70 + Math.random() * 25, // 70-95%
+        avgDaysPerWeek: 2.5 + Math.random() * 1.5, // 2.5-4 days
+        employees: employees.filter(e => e.team === team).length,
+      }));
 
-    return {
-      teamUtilization,
-      dailyOccupancy,
-      deptMetrics,
-      totalCapacity: allSeats.length,
-      avgOccupancy: dailyOccupancy.reduce((sum, d) => sum + d.occupancy, 0) / DAYS.length,
-    };
-  }, []);
+      const dailyOccupancy = DAYS.map(day => ({
+        day,
+        occupancy: 60 + Math.random() * 30, // 60-90%
+        capacity: allSeats.length,
+        scheduled: Math.floor((60 + Math.random() * 30) * allSeats.length / 100),
+      }));
+
+      const deptMetrics = allDepts.map(dept => ({
+        dept,
+        employees: employees.filter(e => e.department === dept).length,
+        avgUtilization: 65 + Math.random() * 25,
+        hybridRatio: 0.6 + Math.random() * 0.3,
+      }));
+
+      return {
+        teamUtilization,
+        dailyOccupancy,
+        deptMetrics,
+        totalCapacity: allSeats.length,
+        avgOccupancy: dailyOccupancy.reduce((sum, d) => sum + d.occupancy, 0) / DAYS.length,
+      };
+    }, []);
+
+    return { totalEmployees, totalSeats, analyticsData };
+  }, [employees, allSeats, allDepts]);
 
   const exportReport = () => {
     toast({ title: "Report exported", description: `Analytics report for ${selectedPeriod} has been exported.` });
@@ -87,7 +99,7 @@ const Analytics = () => {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.avgOccupancy.toFixed(1)}%</div>
+            <div className="text-2xl font-bold">{stats.analyticsData.avgOccupancy.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
               +2.5% from last {selectedPeriod}
             </p>
@@ -142,7 +154,7 @@ const Analytics = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {analyticsData.dailyOccupancy.map((day) => (
+              {stats.analyticsData.dailyOccupancy.map((day) => (
                 <div key={day.day} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium">{day.day}</span>
@@ -169,7 +181,7 @@ const Analytics = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {analyticsData.teamUtilization.map((team) => (
+              {stats.analyticsData.teamUtilization.map((team) => (
                 <div key={team.team} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -203,7 +215,7 @@ const Analytics = () => {
         </CardHeader>
         <CardContent>
           <div className="grid gap-6 md:grid-cols-3">
-            {analyticsData.deptMetrics.map((dept) => (
+            {stats.analyticsData.deptMetrics.map((dept) => (
               <div key={dept.dept} className="space-y-4 p-4 rounded-lg border bg-card">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">{dept.dept}</h3>

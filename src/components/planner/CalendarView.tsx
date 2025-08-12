@@ -1,12 +1,13 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DAYS, DayKey, Schedule, Employee } from "@/types/planner";
-import React from "react";
+import { DayKey, Schedule, LegacyEmployee } from "@/types/planner";
+import { DAYS } from "@/types/planner";
 
 interface CalendarViewProps {
   schedule: Schedule;
-  employees: Employee[];
-  teamColor: (team: string) => string; // returns className e.g., team-bg-1
+  employees: LegacyEmployee[];
+  teamColor: (team: string) => string;
   selectedDay?: DayKey;
 }
 
@@ -18,33 +19,41 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, employees, teamCo
       <CardHeader>
         <CardTitle>Schedule by Day</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-6 md:grid-cols-5">
-          {DAYS.map((day) => (
-            <div key={day} className={`rounded-lg border p-3 ${selectedDay === day ? "ring-2 ring-ring" : ""}`}>
-              <h4 className="text-sm font-medium mb-2">{day}</h4>
-              <div className="space-y-2 max-h-[320px] overflow-auto pr-1">
-                {schedule[day]?.length ? (
-                  schedule[day].map((id) => {
-                    const emp = empById[id];
+      <CardContent className="space-y-4">
+        {DAYS.map((day) => {
+          const employeeIds = schedule[day] || [];
+          const isSelected = selectedDay === day;
+          return (
+            <div key={day} className={`p-4 rounded-lg border ${isSelected ? "border-primary bg-primary/5" : "border-border"}`}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`font-semibold ${isSelected ? "text-primary" : ""}`}>{day}</h3>
+                <Badge variant={isSelected ? "default" : "secondary"}>
+                  {employeeIds.length} scheduled
+                </Badge>
+              </div>
+              
+              {employeeIds.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No employees scheduled</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {employeeIds.map((empId) => {
+                    const emp = empById[empId];
                     if (!emp) return null;
                     return (
-                      <div key={id} className="flex items-center justify-between rounded-md border px-2 py-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-block size-2 rounded-full ${teamColor(emp.team)}`} />
-                          <span className="text-sm">{emp.name}</span>
-                        </div>
-                        <Badge variant="secondary">{emp.team}</Badge>
-                      </div>
+                      <Badge
+                        key={empId}
+                        variant="secondary"
+                        className={`${teamColor(emp.team)} text-white border-0 text-xs`}
+                      >
+                        {emp.name}
+                      </Badge>
                     );
-                  })
-                ) : (
-                  <p className="text-sm text-muted-foreground">No one scheduled</p>
-                )}
-              </div>
+                  })}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+          );
+        })}
       </CardContent>
     </Card>
   );

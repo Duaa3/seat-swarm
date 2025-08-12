@@ -1,12 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Employee, Seat, DayKey } from "@/types/planner";
 import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { DayKey, LegacyEmployee, LegacySeat } from "@/types/planner";
 
 interface SeatingMapProps {
   day: DayKey;
-  assignments: Record<string, string> | undefined; // employeeId -> seatId
-  seats: Seat[];
-  employees: Employee[];
+  assignments: Record<string, string>;
+  seats: LegacySeat[];
+  employees: LegacyEmployee[];
   teamColor: (team: string) => string;
 }
 
@@ -18,36 +19,56 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
 
   const floors = React.useMemo(() => Array.from(new Set(seats.map((s) => s.floor))).sort(), [seats]);
 
+  const renderFloor = (floor: number) => {
+    const floorSeats = seats.filter((s) => s.floor === floor);
+    const assignedSeats = Object.entries(assignments || {}).filter(([, seatId]) => seatById[seatId]?.floor === floor);
+
+    return (
+      <Card key={floor} className="shadow-glow">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            {floorTitle(floor)}
+            <Badge variant="outline">{assignedSeats.length}/{floorSeats.length} occupied</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-8 gap-2">
+            {floorSeats.map((seat) => {
+              const empId = Object.keys(assignments || {}).find((eid) => assignments[eid] === seat.id);
+              const emp = empId ? empById[empId] : null;
+              
+              return (
+                <div
+                  key={seat.id}
+                  className={`aspect-square rounded border-2 p-1 text-xs flex items-center justify-center text-center ${
+                    emp 
+                      ? `${teamColor(emp.team)} text-white border-transparent` 
+                      : "bg-muted border-border hover:bg-muted/80"
+                  }`}
+                  title={emp ? `${emp.name} (${emp.team})` : `Seat ${seat.id}`}
+                >
+                  {emp ? emp.name.split(" ")[0] : seat.id.split("-")[1]}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
-    <Card className="shadow-glow">
-      <CardHeader>
-        <CardTitle>Seating Map — {day}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-6 md:grid-cols-2">
-          {floors.map((f) => (
-            <div key={f} className="rounded-lg border p-4">
-              <div className="mb-3 text-sm font-medium">{floorTitle(f)}</div>
-              <div className="relative h-[360px] rounded-lg border bg-muted/30 overflow-hidden">
-                {seats.filter((s) => s.floor === f).map((s) => {
-                  const empId = Object.entries(assignments ?? {}).find(([eid, sid]) => sid === s.id)?.[0];
-                  const emp = empId ? empById[empId] : undefined;
-                  return (
-                    <div
-                      key={s.id}
-                      title={emp ? `${emp.name} • ${emp.team}` : s.id}
-                      className={`absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border ${emp ? teamColor(emp.team) : "bg-background"}`}
-                      style={{ left: `${s.x}%`, top: `${s.y}%` }}
-                    />
-                  );
-                })}
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">{assignments ? Object.values(assignments).filter((sid) => seatById[sid]?.floor === f).length : 0} assigned</div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Seating Map - {day}</h2>
+        <Badge variant="outline">
+          {Object.keys(assignments || {}).length} total assignments
+        </Badge>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        {floors.map(renderFloor)}
+      </div>
+    </div>
   );
 };
 

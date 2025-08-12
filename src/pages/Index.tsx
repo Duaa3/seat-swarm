@@ -6,8 +6,8 @@ import WarningsBanner from "@/components/planner/WarningsBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { DAYS, DayKey, DayCapacities, Schedule, SeatAssignments, WarningItem } from "@/types/planner";
-import { employees, allSeats, allDepts, allTeams, floor1Seats, floor2Seats } from "@/data/mock";
+import { DAYS, DayKey, DayCapacities, Schedule, SeatAssignments, WarningItem, LegacyEmployee, LegacySeat } from "@/types/planner";
+import { MOCK_EMPLOYEES, MOCK_SEATS, allDepartments, allTeams } from "@/data/mock";
 
 const Index = () => {
   // Controls
@@ -23,14 +23,53 @@ const Index = () => {
   const [assignments, setAssignments] = React.useState<SeatAssignments>({ Mon: {}, Tue: {}, Wed: {}, Thu: {}, Fri: {} });
   const [warnings, setWarnings] = React.useState<WarningItem[]>([]);
 
-  const totalSeats = React.useMemo(() => allSeats.length, []);
+  // Convert new data to legacy format for compatibility
+  const employees: LegacyEmployee[] = React.useMemo(() => 
+    MOCK_EMPLOYEES.map(emp => ({
+      id: emp.employee_id,
+      name: emp.full_name,
+      team: emp.team,
+      dept: emp.department,
+      preferredDays: emp.preferred_days as DayKey[],
+      onsiteRatio: emp.onsite_ratio,
+      zone: emp.preferred_zone,
+    })), []);
+
+  const allSeats: LegacySeat[] = React.useMemo(() => 
+    MOCK_SEATS.map(seat => ({
+      id: seat.seat_id,
+      floor: seat.floor,
+      x: seat.x,
+      y: seat.y,
+      zone: seat.zone,
+    })), []);
+
+  const allDepts = allDepartments;
+  const floor1Seats: LegacySeat[] = React.useMemo(() => 
+    MOCK_SEATS.filter(s => s.floor === 1).map(seat => ({
+      id: seat.seat_id,
+      floor: seat.floor,
+      x: seat.x,
+      y: seat.y,
+      zone: seat.zone,
+    })), []);
+  
+  const floor2Seats: LegacySeat[] = React.useMemo(() => 
+    MOCK_SEATS.filter(s => s.floor === 2).map(seat => ({
+      id: seat.seat_id,
+      floor: seat.floor,
+      x: seat.x,
+      y: seat.y,
+      zone: seat.zone,
+    })), []);
+
+  const totalSeats = React.useMemo(() => allSeats.length, [allSeats]);
 
   const teamClass = React.useCallback((team: string) => {
     const idx = (allTeams.indexOf(team) % 8) + 1;
     return `team-bg-${idx}`;
   }, []);
 
-  // Simple greedy scheduler honoring capacity and department caps
   function generateSchedule() {
     const perDeptCounts = Object.fromEntries(allDepts.map((d) => [d, employees.filter((e) => e.dept === d).length])) as Record<string, number>;
     const perDeptDailyCap = Object.fromEntries(Object.entries(perDeptCounts).map(([d, n]) => [d, Math.floor((deptCap / 100) * n)])) as Record<string, number>;
