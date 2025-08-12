@@ -71,12 +71,12 @@ const AssignmentControls: React.FC<AssignmentControlsProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3">
             <Button 
               onClick={onAssign} 
               disabled={loading}
               variant="hero"
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2 h-11 text-sm font-medium"
             >
               <Play className="h-4 w-4" />
               {loading ? "Assigning..." : "Assign Seats"}
@@ -84,7 +84,7 @@ const AssignmentControls: React.FC<AssignmentControlsProps> = ({
             <Button 
               onClick={onReset} 
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2 h-11 text-sm font-medium"
             >
               <RotateCcw className="h-4 w-4" />
               Reset
@@ -92,7 +92,7 @@ const AssignmentControls: React.FC<AssignmentControlsProps> = ({
             <Button 
               onClick={onSave} 
               variant="secondary"
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2 h-11 text-sm font-medium"
             >
               <Save className="h-4 w-4" />
               Save
@@ -100,7 +100,7 @@ const AssignmentControls: React.FC<AssignmentControlsProps> = ({
             <Button 
               onClick={onLoadCsv} 
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2 h-11 text-sm font-medium"
             >
               <Upload className="h-4 w-4" />
               Load CSV
