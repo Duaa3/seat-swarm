@@ -1,76 +1,179 @@
 import React from "react";
-import SeatingMap from "@/components/planner/SeatingMap";
+import SeatMap from "@/components/planner/SeatMap";
+import AssignmentControls from "@/components/planner/AssignmentControls";
+import AssignmentResults from "@/components/planner/AssignmentResults";
+import CsvUploader from "@/components/planner/CsvUploader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { DAYS, DayKey, SeatAssignments, type Schedule } from "@/types/planner";
-import { employees, allSeats, allTeams, floor1Seats, floor2Seats } from "@/data/mock";
-import { MapPin, Users, RefreshCw, Download } from "lucide-react";
+import { 
+  DAYS, 
+  DayKey, 
+  MOCK_EMPLOYEES, 
+  MOCK_SEATS, 
+  DEFAULT_WEIGHTS,
+  Employee,
+  Seat,
+  Assignment,
+  Weights
+} from "@/data/mock";
+import { assignSeats } from "@/lib/api";
+import { MapPin, Users, RefreshCw, Download, Settings, Eye } from "lucide-react";
 
 const SeatingMapPage = () => {
   const [selectedDay, setSelectedDay] = React.useState<DayKey>("Wed");
-  const [assignments, setAssignments] = React.useState<SeatAssignments>({ Mon: {}, Tue: {}, Wed: {}, Thu: {}, Fri: {} });
+  const [employees, setEmployees] = React.useState<Employee[]>(MOCK_EMPLOYEES);
+  const [seats, setSeats] = React.useState<Seat[]>(MOCK_SEATS);
+  const [assignments, setAssignments] = React.useState<Assignment[]>([]);
+  const [unassigned, setUnassigned] = React.useState<string[]>([]);
+  const [unusedSeats, setUnusedSeats] = React.useState<string[]>([]);
+  const [weights, setWeights] = React.useState<Weights>(DEFAULT_WEIGHTS);
+  const [solver, setSolver] = React.useState<"greedy" | "hungarian">("greedy");
+  const [teamClusters, setTeamClusters] = React.useState<string[]>([]);
+  const [deptCapacity, setDeptCapacity] = React.useState(60);
+  const [loading, setLoading] = React.useState(false);
+  const [meta, setMeta] = React.useState<any>(null);
   
   // Mock schedule for demonstration
-  const [schedule] = React.useState<Schedule>(() => ({
-    Mon: employees.slice(0, 20).map(e => e.id),
-    Tue: employees.slice(5, 25).map(e => e.id),
-    Wed: employees.slice(0, 18).map(e => e.id),
-    Thu: employees.slice(3, 22).map(e => e.id),
-    Fri: employees.slice(1, 16).map(e => e.id),
+  const [schedule] = React.useState<Record<DayKey, string[]>>(() => ({
+    Mon: employees.slice(0, 8).map(e => e.employee_id),
+    Tue: employees.slice(2, 10).map(e => e.employee_id),
+    Wed: employees.slice(0, 6).map(e => e.employee_id),
+    Thu: employees.slice(1, 9).map(e => e.employee_id),
+    Fri: employees.slice(0, 5).map(e => e.employee_id),
   }));
-
-  const teamClass = React.useCallback((team: string) => {
-    const idx = (allTeams.indexOf(team) % 8) + 1;
-    return `team-bg-${idx}`;
-  }, []);
 
   const dayStats = React.useMemo(() => {
     const scheduled = schedule[selectedDay]?.length || 0;
-    const assigned = Object.keys(assignments[selectedDay] || {}).length;
-    const floor1Assigned = Object.values(assignments[selectedDay] || {}).filter(seatId => seatId.startsWith("F1")).length;
-    const floor2Assigned = Object.values(assignments[selectedDay] || {}).filter(seatId => seatId.startsWith("F2")).length;
+    const assigned = assignments.length;
+    const floor1Seats = seats.filter(s => s.floor === 1);
+    const floor2Seats = seats.filter(s => s.floor === 2);
+    const floor1Assigned = assignments.filter(a => {
+      const seat = seats.find(s => s.seat_id === a.seat_id);
+      return seat?.floor === 1;
+    }).length;
+    const floor2Assigned = assignments.filter(a => {
+      const seat = seats.find(s => s.seat_id === a.seat_id);
+      return seat?.floor === 2;
+    }).length;
     
     return {
       scheduled,
       assigned,
-      unassigned: scheduled - assigned,
+      unassigned: unassigned.length,
       floor1: { assigned: floor1Assigned, total: floor1Seats.length },
       floor2: { assigned: floor2Assigned, total: floor2Seats.length },
     };
-  }, [selectedDay, schedule, assignments]);
+  }, [selectedDay, schedule, assignments, unassigned, seats]);
 
-  const assignSeatsForDay = () => {
-    const ids = schedule[selectedDay] || [];
-    if (!ids.length) {
+  const assignSeatsForDay = async () => {
+    const employeeIds = schedule[selectedDay] || [];
+    if (!employeeIds.length) {
       toast({ title: "No schedule", description: `No employees scheduled for ${selectedDay}.` });
       return;
     }
 
-    const dayAssign: Record<string, string> = {};
-    const availableSeats = [...allSeats.map(s => s.id)];
+    const employeesForDay = employees.filter(emp => employeeIds.includes(emp.employee_id));
+    
+    setLoading(true);
+    try {
+      const payload = {
+        employees: employeesForDay,
+        seats,
+        weights,
+        solver,
+        constraints: {
+          team_clusters: teamClusters,
+          dept_capacity: deptCapacity,
+        },
+      };
 
-    // Simple assignment: first come, first served
-    for (let i = 0; i < ids.length && i < availableSeats.length; i++) {
-      dayAssign[ids[i]] = availableSeats[i];
+      const result = await assignSeats(payload);
+      
+      setAssignments(result.assignments);
+      setUnassigned(result.unassigned_employees);
+      setUnusedSeats(result.unused_seats);
+      setMeta(result.meta);
+      
+      toast({ 
+        title: "Seats assigned", 
+        description: `Assigned ${result.assignments.length} seats for ${selectedDay}. Average score: ${(result.assignments.reduce((sum, a) => sum + a.score, 0) / result.assignments.length || 0).toFixed(2)}` 
+      });
+    } catch (error) {
+      toast({
+        title: "Error assigning seats",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setAssignments(prev => ({ ...prev, [selectedDay]: dayAssign }));
-    toast({ 
-      title: "Seats assigned", 
-      description: `Assigned ${Object.keys(dayAssign).length} seats for ${selectedDay}.` 
-    });
   };
 
   const clearAssignments = () => {
-    setAssignments(prev => ({ ...prev, [selectedDay]: {} }));
+    setAssignments([]);
+    setUnassigned([]);
+    setUnusedSeats([]);
+    setMeta(null);
     toast({ title: "Assignments cleared", description: `Cleared all seat assignments for ${selectedDay}.` });
   };
 
   const exportLayout = () => {
-    toast({ title: "Layout exported", description: "Seating layout exported successfully." });
+    const csvRows = ['Employee ID,Full Name,Team,Department,Seat ID,Floor,Zone,Score'];
+    
+    assignments.forEach(assignment => {
+      const employee = employees.find(e => e.employee_id === assignment.employee_id);
+      const seat = seats.find(s => s.seat_id === assignment.seat_id);
+      
+      csvRows.push([
+        assignment.employee_id,
+        employee?.full_name || 'Unknown',
+        employee?.team || 'Unknown',
+        employee?.department || 'Unknown',
+        assignment.seat_id,
+        seat?.floor || '',
+        seat?.zone || '',
+        assignment.score.toFixed(2)
+      ].join(','));
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `seating_layout_${selectedDay}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleReset = () => {
+    setAssignments([]);
+    setUnassigned([]);
+    setUnusedSeats([]);
+    setMeta(null);
+    setWeights(DEFAULT_WEIGHTS);
+    setSolver("greedy");
+    setTeamClusters([]);
+    setDeptCapacity(60);
+    toast({ title: "Settings reset", description: "All settings and assignments have been reset." });
+  };
+
+  const handleSave = () => {
+    const saveData = {
+      assignments,
+      weights,
+      solver,
+      teamClusters,
+      deptCapacity,
+      selectedDay,
+      timestamp: new Date().toISOString(),
+    };
+    localStorage.setItem('seating_data', JSON.stringify(saveData));
+    toast({ title: "Settings saved", description: "Settings saved to browser storage." });
   };
 
   return (
@@ -102,9 +205,9 @@ const SeatingMapPage = () => {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button variant="hero" onClick={assignSeatsForDay}>
+            <Button variant="hero" onClick={assignSeatsForDay} disabled={loading}>
               <MapPin className="h-4 w-4 mr-2" />
-              Assign Seats
+              {loading ? "Assigning..." : "Assign Seats"}
             </Button>
           </div>
         </div>
@@ -165,44 +268,125 @@ const SeatingMapPage = () => {
         </Card>
       </div>
 
-      {/* Team Legend */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Team Colors</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {allTeams.map((team, index) => {
-              const teamSize = employees.filter(e => e.team === team).length;
-              const teamBgClass = teamClass(team);
-              return (
-                <Badge key={team} variant="secondary" className={`${teamBgClass} text-white border-0`}>
-                  {team} ({teamSize})
-                </Badge>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="map" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="map" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Map View
+          </TabsTrigger>
+          <TabsTrigger value="controls" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Controls
+          </TabsTrigger>
+          <TabsTrigger value="results" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Results
+          </TabsTrigger>
+          <TabsTrigger value="data" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Data
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Seating Map */}
-      <SeatingMap 
-        day={selectedDay} 
-        assignments={assignments[selectedDay]} 
-        seats={allSeats} 
-        employees={employees} 
-        teamColor={teamClass} 
-      />
+        <TabsContent value="map" className="space-y-6">
+          {/* Team Legend */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Team Colors</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {Array.from(new Set(employees.map(e => e.team))).map((team) => {
+                  const teamSize = employees.filter(e => e.team === team).length;
+                  const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA"];
+                  const index = teams.indexOf(team);
+                  const teamBgClass = `team-bg-${(index % 8) + 1}`;
+                  return (
+                    <Badge key={team} variant="secondary" className={`${teamBgClass} text-white border-0`}>
+                      {team} ({teamSize})
+                    </Badge>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Instructions */}
-      <Card>
-        <CardContent className="text-sm text-muted-foreground pt-6">
-          <p>
-            <strong>Instructions:</strong> Select a day to view scheduled employees. Click "Assign Seats" to automatically 
-            assign available seats. Colored dots represent employees by team. Empty dots are available seats.
-          </p>
-        </CardContent>
-      </Card>
+          {/* Seating Map */}
+          <SeatMap 
+            seats={seats}
+            assignments={assignments}
+            employees={employees}
+            onSeatClick={(seat) => {
+              toast({ 
+                title: "Seat Info", 
+                description: `${seat.seat_id} - Floor ${seat.floor}, ${seat.zone}${seat.is_window ? ', Window' : ''}${seat.is_accessible ? ', Accessible' : ''}` 
+              });
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="controls" className="space-y-6">
+          <AssignmentControls
+            weights={weights}
+            onWeightsChange={setWeights}
+            solver={solver}
+            onSolverChange={setSolver}
+            teamClusters={teamClusters}
+            onTeamClustersChange={setTeamClusters}
+            deptCapacity={deptCapacity}
+            onDeptCapacityChange={setDeptCapacity}
+            maxAssignments={undefined}
+            onMaxAssignmentsChange={() => {}}
+            onAssign={assignSeatsForDay}
+            onReset={handleReset}
+            onSave={handleSave}
+            onLoadCsv={() => {}} // Handled in Data tab
+            loading={loading}
+          />
+        </TabsContent>
+
+        <TabsContent value="results" className="space-y-6">
+          <AssignmentResults
+            assignments={assignments}
+            unassigned={unassigned}
+            unusedSeats={unusedSeats}
+            employees={employees}
+            seats={seats}
+            meta={meta}
+          />
+        </TabsContent>
+
+        <TabsContent value="data" className="space-y-6">
+          <CsvUploader
+            onEmployeesLoaded={setEmployees}
+            onSeatsLoaded={setSeats}
+          />
+          
+          {/* Current Data Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Current Data</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="font-medium">Employees: {employees.length}</div>
+                  <div className="text-muted-foreground">
+                    Teams: {Array.from(new Set(employees.map(e => e.team))).length}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-medium">Seats: {seats.length}</div>
+                  <div className="text-muted-foreground">
+                    Floors: {Array.from(new Set(seats.map(s => s.floor))).length}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
