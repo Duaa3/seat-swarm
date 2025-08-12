@@ -78,7 +78,7 @@ const Settings = () => {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="company-name">Company Name</Label>
-              <Input id="company-name" placeholder="Enter company name" defaultValue="Acme Corporation" />
+              <Input id="company-name" placeholder="Enter company name" defaultValue="Smart Office Corporation" />
             </div>
 
             <div className="space-y-2">
