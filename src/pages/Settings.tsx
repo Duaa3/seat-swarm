@@ -249,39 +249,6 @@ const Settings = () => {
         </Card>
       </div>
 
-      <Separator />
-
-      {/* Advanced Settings */}
-      <Card className="shadow-glow">
-        <CardHeader>
-          <CardTitle>Advanced Configuration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="api-endpoint">API Endpoint</Label>
-              <Input id="api-endpoint" placeholder="https://api.example.com" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="api-key">API Key</Label>
-              <Input id="api-key" type="password" placeholder="••••••••••••••••" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="backup-interval">Backup Interval</Label>
-              <Select defaultValue="daily">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hourly">Hourly</SelectItem>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardContent className="text-xs text-muted-foreground pt-6">
