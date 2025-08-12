@@ -56,46 +56,81 @@ export const DEFAULT_WEIGHTS: Weights = {
   w_zone: 0.5,
 };
 
-// Mock Employees (30 across 6 teams, 3 departments)
-export const MOCK_EMPLOYEES: Employee[] = [
-  { employee_id: "E001", full_name: "Aisha Rahman", team: "Network", department: "Core", preferred_work_mode: "hybrid", needs_accessible: false, prefer_window: true, preferred_zone: "ZoneB", onsite_ratio: 0.62, project_count: 3, preferred_days: ["Mon","Wed"] },
-  { employee_id: "E002", full_name: "Hilal Ahmed", team: "CoreOps", department: "Core", preferred_work_mode: "hybrid", needs_accessible: true, prefer_window: false, preferred_zone: "ZoneA", onsite_ratio: 0.71, project_count: 4, preferred_days: ["Tue","Thu"] },
-  { employee_id: "E003", full_name: "Maya Chen", team: "Design", department: "GoToMarket", preferred_work_mode: "hybrid", needs_accessible: false, prefer_window: true, preferred_zone: "ZoneB", onsite_ratio: 0.55, project_count: 2, preferred_days: ["Mon","Fri"] },
-  { employee_id: "E004", full_name: "David Kim", team: "Sales", department: "GoToMarket", preferred_work_mode: "office", needs_accessible: false, prefer_window: false, preferred_zone: "ZoneA", onsite_ratio: 0.85, project_count: 5, preferred_days: ["Mon","Tue","Wed"] },
-  { employee_id: "E005", full_name: "Sofia Garcia", team: "Ops", department: "Operations", preferred_work_mode: "hybrid", needs_accessible: true, prefer_window: true, preferred_zone: "ZoneC", onsite_ratio: 0.60, project_count: 3, preferred_days: ["Wed","Thu"] },
-  { employee_id: "E006", full_name: "James Wilson", team: "Data", department: "Core", preferred_work_mode: "remote", needs_accessible: false, prefer_window: false, preferred_zone: "ZoneA", onsite_ratio: 0.40, project_count: 1, preferred_days: ["Fri"] },
-  { employee_id: "E007", full_name: "Elena Petrov", team: "QA", department: "Core", preferred_work_mode: "hybrid", needs_accessible: false, prefer_window: true, preferred_zone: "ZoneB", onsite_ratio: 0.65, project_count: 4, preferred_days: ["Mon","Wed","Fri"] },
-  { employee_id: "E008", full_name: "Ahmad Hassan", team: "Network", department: "Core", preferred_work_mode: "hybrid", needs_accessible: false, prefer_window: false, preferred_zone: "ZoneA", onsite_ratio: 0.70, project_count: 3, preferred_days: ["Tue","Thu"] },
-  { employee_id: "E009", full_name: "Lisa Thompson", team: "Design", department: "GoToMarket", preferred_work_mode: "hybrid", needs_accessible: true, prefer_window: true, preferred_zone: "ZoneC", onsite_ratio: 0.58, project_count: 2, preferred_days: ["Mon","Wed"] },
-  { employee_id: "E010", full_name: "Roberto Silva", team: "Sales", department: "GoToMarket", preferred_work_mode: "office", needs_accessible: false, prefer_window: true, preferred_zone: "ZoneB", onsite_ratio: 0.80, project_count: 6, preferred_days: ["Mon","Tue","Wed","Thu"] },
-];
+// Generate 400 Mock Employees
+function generateEmployees(): Employee[] {
+  const firstNames = ["Aisha", "Hilal", "Maya", "David", "Sofia", "James", "Elena", "Ahmad", "Lisa", "Roberto", "Sarah", "Michael", "Priya", "Carlos", "Emma", "Hassan", "Fatima", "Alex", "Nina", "Omar", "Lucia", "Mark", "Zara", "Sam", "Leila", "Kevin", "Amara", "Ben", "Yasmin", "Ryan"];
+  const lastNames = ["Rahman", "Ahmed", "Chen", "Kim", "Garcia", "Wilson", "Petrov", "Hassan", "Thompson", "Silva", "Johnson", "Brown", "Patel", "Martinez", "Davis", "Ali", "Khan", "Lee", "Miller", "Jones", "Smith", "Lopez", "Clark", "Nguyen", "Taylor", "White", "Anderson", "Williams", "Jackson", "Martin"];
+  const teams = ["Network", "CoreOps", "Design", "Sales", "Data", "QA", "Security", "DevOps", "Product", "Support"];
+  const departments = ["Core", "GoToMarket", "Operations"];
+  const workModes: ("hybrid" | "remote" | "office")[] = ["hybrid", "remote", "office"];
+  const zones = ["ZoneA", "ZoneB", "ZoneC"];
+  const daysCombos = [["Mon","Wed"], ["Tue","Thu"], ["Mon","Fri"], ["Mon","Tue","Wed"], ["Wed","Thu"], ["Fri"], ["Mon","Wed","Fri"], ["Tue","Thu"], ["Mon","Tue","Wed","Thu"], ["Wed","Thu","Fri"]];
 
-// Mock Seats (20 seats across 2 floors, 3 zones)
-export const MOCK_SEATS: Seat[] = [
-  // Floor 1 - ZoneA (Accessible area)
-  { seat_id: "F1-S01", floor: 1, zone: "ZoneA", is_accessible: true, is_window: false, x: 1, y: 1 },
-  { seat_id: "F1-S02", floor: 1, zone: "ZoneA", is_accessible: true, is_window: false, x: 2, y: 1 },
-  { seat_id: "F1-S03", floor: 1, zone: "ZoneA", is_accessible: true, is_window: true, x: 3, y: 1 },
-  { seat_id: "F1-S04", floor: 1, zone: "ZoneA", is_accessible: false, is_window: true, x: 4, y: 1 },
-  { seat_id: "F1-S05", floor: 1, zone: "ZoneB", is_accessible: false, is_window: true, x: 5, y: 1 },
-  { seat_id: "F1-S06", floor: 1, zone: "ZoneB", is_accessible: false, is_window: true, x: 6, y: 1 },
-  { seat_id: "F1-S07", floor: 1, zone: "ZoneB", is_accessible: false, is_window: false, x: 7, y: 1 },
-  { seat_id: "F1-S08", floor: 1, zone: "ZoneB", is_accessible: false, is_window: false, x: 8, y: 1 },
-  { seat_id: "F1-S09", floor: 1, zone: "ZoneC", is_accessible: true, is_window: false, x: 1, y: 2 },
-  { seat_id: "F1-S10", floor: 1, zone: "ZoneC", is_accessible: false, is_window: false, x: 2, y: 2 },
+  return Array.from({ length: 400 }, (_, i) => {
+    const empId = String(i + 1).padStart(3, '0');
+    return {
+      employee_id: `E${empId}`,
+      full_name: `${firstNames[i % firstNames.length]} ${lastNames[Math.floor(i / firstNames.length) % lastNames.length]}`,
+      team: teams[i % teams.length],
+      department: departments[i % departments.length],
+      preferred_work_mode: workModes[i % workModes.length],
+      needs_accessible: Math.random() < 0.15, // ~15% need accessibility
+      prefer_window: Math.random() < 0.6, // ~60% prefer windows
+      preferred_zone: zones[i % zones.length],
+      onsite_ratio: Math.round((0.3 + Math.random() * 0.6) * 100) / 100, // 0.3-0.9
+      project_count: Math.floor(Math.random() * 6) + 1, // 1-6 projects
+      preferred_days: daysCombos[i % daysCombos.length],
+    };
+  });
+}
+
+export const MOCK_EMPLOYEES: Employee[] = generateEmployees();
+
+// Generate 98 Mock Seats (48 on Floor 1, 50 on Floor 2)
+function generateSeats(): Seat[] {
+  const zones = ["ZoneA", "ZoneB", "ZoneC"];
+  const seats: Seat[] = [];
   
-  // Floor 2 - Mixed zones
-  { seat_id: "F2-S01", floor: 2, zone: "ZoneA", is_accessible: true, is_window: true, x: 1, y: 1 },
-  { seat_id: "F2-S02", floor: 2, zone: "ZoneA", is_accessible: true, is_window: true, x: 2, y: 1 },
-  { seat_id: "F2-S03", floor: 2, zone: "ZoneA", is_accessible: false, is_window: true, x: 3, y: 1 },
-  { seat_id: "F2-S04", floor: 2, zone: "ZoneB", is_accessible: false, is_window: true, x: 4, y: 1 },
-  { seat_id: "F2-S05", floor: 2, zone: "ZoneB", is_accessible: false, is_window: false, x: 5, y: 1 },
-  { seat_id: "F2-S06", floor: 2, zone: "ZoneB", is_accessible: false, is_window: false, x: 6, y: 1 },
-  { seat_id: "F2-S07", floor: 2, zone: "ZoneC", is_accessible: true, is_window: true, x: 7, y: 1 },
-  { seat_id: "F2-S08", floor: 2, zone: "ZoneC", is_accessible: false, is_window: true, x: 8, y: 1 },
-  { seat_id: "F2-S09", floor: 2, zone: "ZoneC", is_accessible: false, is_window: false, x: 1, y: 2 },
-  { seat_id: "F2-S10", floor: 2, zone: "ZoneC", is_accessible: false, is_window: false, x: 2, y: 2 },
-];
+  // Floor 1: 48 seats (8x6 grid)
+  for (let i = 0; i < 48; i++) {
+    const seatNum = String(i + 1).padStart(2, '0');
+    const x = (i % 8) + 1;
+    const y = Math.floor(i / 8) + 1;
+    const zone = zones[i % zones.length];
+    
+    seats.push({
+      seat_id: `F1-S${seatNum}`,
+      floor: 1,
+      zone,
+      is_accessible: i < 12, // First 12 seats are accessible
+      is_window: x === 1 || x === 8 || y === 1 || y === 6, // Perimeter seats have windows
+      x,
+      y,
+    });
+  }
+  
+  // Floor 2: 50 seats (10x5 grid)
+  for (let i = 0; i < 50; i++) {
+    const seatNum = String(i + 1).padStart(2, '0');
+    const x = (i % 10) + 1;
+    const y = Math.floor(i / 10) + 1;
+    const zone = zones[i % zones.length];
+    
+    seats.push({
+      seat_id: `F2-S${seatNum}`,
+      floor: 2,
+      zone,
+      is_accessible: i < 10, // First 10 seats are accessible
+      is_window: x === 1 || x === 10 || y === 1 || y === 5, // Perimeter seats have windows
+      x,
+      y,
+    });
+  }
+  
+  return seats;
+}
+
+export const MOCK_SEATS: Seat[] = generateSeats();
 
 // Derived data
 export const allTeams = Array.from(new Set(MOCK_EMPLOYEES.map(e => e.team)));
