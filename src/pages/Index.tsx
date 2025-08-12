@@ -210,7 +210,7 @@ const Index = () => {
             onSelectedDayChange={setSelectedDay}
           />
 
-          <CalendarView schedule={schedule} employees={employees} teamColor={teamClass} selectedDay={selectedDay} />
+          <CalendarView schedule={schedule} employees={employees} selectedDay={selectedDay} />
         </div>
 
         <SeatingMap day={selectedDay} assignments={assignments[selectedDay]} seats={allSeats} employees={employees} teamColor={teamClass} />

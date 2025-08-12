@@ -4,14 +4,31 @@ import { Badge } from "@/components/ui/badge";
 import { DayKey, Schedule, LegacyEmployee } from "@/types/planner";
 import { DAYS } from "@/types/planner";
 
+// Enhanced team color mapping with consistent assignment
+const getTeamColorClass = (team: string) => {
+  const teamMapping: Record<string, string> = {
+    "Network": "team-bg-1",
+    "CoreOps": "team-bg-2", 
+    "Design": "team-bg-3",
+    "Sales": "team-bg-4",
+    "Ops": "team-bg-5",
+    "Data": "team-bg-6",
+    "QA": "team-bg-7",
+    "Security": "team-bg-8",
+    "DevOps": "team-bg-1",
+    "Product": "team-bg-2",
+    "Support": "team-bg-3",
+  };
+  return teamMapping[team] || "team-bg-8";
+};
+
 interface CalendarViewProps {
   schedule: Schedule;
   employees: LegacyEmployee[];
-  teamColor: (team: string) => string;
   selectedDay?: DayKey;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ schedule, employees, teamColor, selectedDay }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ schedule, employees, selectedDay }) => {
   const empById = React.useMemo(() => Object.fromEntries(employees.map((e) => [e.id, e])), [employees]);
 
   return (
@@ -43,7 +60,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, employees, teamCo
                       <Badge
                         key={empId}
                         variant="secondary"
-                        className={`${teamColor(emp.team)} text-white border-0 text-xs`}
+                        className={`${getTeamColorClass(emp.team)} text-white border-0 text-xs hover:scale-105 transition-transform shadow-sm`}
                       >
                         {emp.name}
                       </Badge>

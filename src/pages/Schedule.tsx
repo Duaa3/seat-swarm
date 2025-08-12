@@ -346,7 +346,6 @@ const SchedulePage = () => {
             schedule={schedule}
             employees={legacyEmployees}
             selectedDay={selectedDay}
-            teamColor={teamClass}
           />
         </div>
       </div>
