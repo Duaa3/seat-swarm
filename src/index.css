@@ -55,15 +55,25 @@ All colors MUST be HSL.
       linear-gradient(135deg, hsl(var(--primary)), hsl(266 75% 45%));
     --shadow-elevated: 0 12px 30px -12px hsl(var(--primary) / 0.35);
 
-    /* Team palette (used for team badges and seats) */
-    --team-1: 225 92% 60%;
-    --team-2: 190 92% 42%;
-    --team-3: 158 65% 45%;
-    --team-4: 28 95% 53%;
-    --team-5: 340 82% 52%;
-    --team-6: 276 85% 60%;
-    --team-7: 12 88% 55%;
-    --team-8: 100 65% 40%;
+    /* Enhanced team palette with vibrant, accessible colors */
+    --team-1: 217 91% 60%;  /* Blue - Network */
+    --team-2: 142 71% 45%;  /* Green - CoreOps */
+    --team-3: 280 100% 70%; /* Purple - Design */
+    --team-4: 25 95% 53%;   /* Orange - Sales */
+    --team-5: 200 98% 39%;  /* Cyan - Ops */
+    --team-6: 262 83% 58%;  /* Violet - Data */
+    --team-7: 350 89% 60%;  /* Pink - QA */
+    --team-8: 60 100% 50%;  /* Yellow - Other */
+
+    /* Team gradient variants */
+    --team-gradient-1: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 50%));
+    --team-gradient-2: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 71% 35%));
+    --team-gradient-3: linear-gradient(135deg, hsl(280 100% 70%), hsl(280 100% 60%));
+    --team-gradient-4: linear-gradient(135deg, hsl(25 95% 53%), hsl(25 95% 43%));
+    --team-gradient-5: linear-gradient(135deg, hsl(200 98% 39%), hsl(200 98% 29%));
+    --team-gradient-6: linear-gradient(135deg, hsl(262 83% 58%), hsl(262 83% 48%));
+    --team-gradient-7: linear-gradient(135deg, hsl(350 89% 60%), hsl(350 89% 50%));
+    --team-gradient-8: linear-gradient(135deg, hsl(60 100% 50%), hsl(60 100% 40%));
   }
 
   .dark {
@@ -120,12 +130,39 @@ All colors MUST be HSL.
   .bg-gradient-primary { background-image: var(--gradient-primary); }
   .shadow-glow { box-shadow: var(--shadow-elevated); }
 
-  .team-bg-1 { background-color: hsl(var(--team-1)); }
-  .team-bg-2 { background-color: hsl(var(--team-2)); }
-  .team-bg-3 { background-color: hsl(var(--team-3)); }
-  .team-bg-4 { background-color: hsl(var(--team-4)); }
-  .team-bg-5 { background-color: hsl(var(--team-5)); }
-  .team-bg-6 { background-color: hsl(var(--team-6)); }
-  .team-bg-7 { background-color: hsl(var(--team-7)); }
-  .team-bg-8 { background-color: hsl(var(--team-8)); }
+  /* Team color utilities */
+  .team-bg-1 { background: var(--team-gradient-1); }
+  .team-bg-2 { background: var(--team-gradient-2); }
+  .team-bg-3 { background: var(--team-gradient-3); }
+  .team-bg-4 { background: var(--team-gradient-4); }
+  .team-bg-5 { background: var(--team-gradient-5); }
+  .team-bg-6 { background: var(--team-gradient-6); }
+  .team-bg-7 { background: var(--team-gradient-7); }
+  .team-bg-8 { background: var(--team-gradient-8); }
+
+  /* Seat animations and states */
+  .seat-occupied {
+    @apply shadow-lg ring-2 ring-white/30 transform scale-105;
+    animation: seat-assign 0.3s ease-out;
+  }
+  
+  .seat-available {
+    @apply hover:scale-110 hover:shadow-md transition-all duration-200;
+  }
+
+  .seat-highlight {
+    @apply ring-2 ring-primary ring-offset-2;
+    animation: pulse-highlight 1.5s ease-in-out infinite;
+  }
+
+  @keyframes seat-assign {
+    0% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1.05); opacity: 1; }
+  }
+
+  @keyframes pulse-highlight {
+    0%, 100% { ring-opacity: 0.5; }
+    50% { ring-opacity: 1; }
+  }
 }

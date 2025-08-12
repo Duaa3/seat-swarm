@@ -45,11 +45,18 @@ const SeatMap: React.FC<SeatMapProps> = ({
     [seats]
   );
 
-  // Get team color class
+  // Enhanced team color mapping with consistent assignment
   const getTeamColorClass = (team: string) => {
-    const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA"];
-    const index = teams.indexOf(team);
-    return `team-bg-${(index % 8) + 1}`;
+    const teamMapping: Record<string, string> = {
+      "Network": "team-bg-1",
+      "CoreOps": "team-bg-2", 
+      "Design": "team-bg-3",
+      "Sales": "team-bg-4",
+      "Ops": "team-bg-5",
+      "Data": "team-bg-6",
+      "QA": "team-bg-7",
+    };
+    return teamMapping[team] || "team-bg-8";
   };
 
   // Calculate grid dimensions for each floor
@@ -59,20 +66,24 @@ const SeatMap: React.FC<SeatMapProps> = ({
     return { cols: maxX, rows: maxY };
   };
 
-  // Render individual seat
+  // Enhanced seat rendering with better visual feedback
   const renderSeat = (seat: Seat) => {
     const assignment = assignmentMap.get(seat.seat_id);
     const employee = assignment ? employeeMap.get(assignment.employee_id) : null;
     
-    const seatClasses = [
-      "relative w-12 h-12 rounded-lg border-2 transition-all duration-200 cursor-pointer",
-      "hover:scale-110 hover:shadow-md",
-      assignment 
-        ? `${employee ? getTeamColorClass(employee.team) : "bg-primary"} border-primary-foreground text-white` 
-        : "bg-muted border-border hover:bg-muted/80",
-      seat.is_window ? "ring-2 ring-yellow-400/50" : "",
-      seat.is_accessible ? "ring-2 ring-blue-400/50" : "",
-    ].join(" ");
+    const baseClasses = "relative w-14 h-14 rounded-xl border-2 cursor-pointer overflow-hidden";
+    const interactionClasses = assignment ? "seat-occupied" : "seat-available";
+    const teamClasses = assignment 
+      ? `${employee ? getTeamColorClass(employee.team) : "bg-gradient-primary"} border-white/20 text-white shadow-lg` 
+      : "bg-gradient-to-br from-muted to-muted/60 border-border/40 hover:from-muted/80 hover:to-muted/40";
+    
+    const specialClasses = [
+      seat.is_window ? "ring-2 ring-amber-400/60" : "",
+      seat.is_accessible ? "ring-2 ring-emerald-400/60" : "",
+      assignment && assignment.score > 8 ? "ring-2 ring-white/40" : "",
+    ].filter(Boolean).join(" ");
+
+    const seatClasses = `${baseClasses} ${interactionClasses} ${teamClasses} ${specialClasses}`;
 
     return (
       <Tooltip key={seat.seat_id}>
@@ -85,37 +96,53 @@ const SeatMap: React.FC<SeatMapProps> = ({
               gridRow: seat.y,
             }}
           >
-            {/* Seat ID */}
+            {/* Seat ID Badge */}
             {showLabels && (
-              <div className="absolute top-0 left-0 text-[8px] font-mono opacity-70 p-0.5">
+              <div className="absolute -top-1 -left-1 bg-background/90 text-foreground text-[8px] font-mono px-1 py-0.5 rounded border">
                 {seat.seat_id.split('-')[1]}
               </div>
             )}
             
             {/* Center content */}
-            <div className="flex items-center justify-center h-full">
-              {assignment ? (
-                <div className="text-center">
-                  <div className="text-[10px] font-semibold truncate">
-                    {employee?.full_name.split(' ')[0] || assignment.employee_id}
+            <div className="flex flex-col items-center justify-center h-full p-1">
+              {assignment && employee ? (
+                <>
+                  <div className="text-[9px] font-semibold leading-tight text-center truncate w-full">
+                    {employee.full_name.split(' ')[0]}
                   </div>
-                  <div className="text-[8px] opacity-80">
-                    {assignment.score.toFixed(1)}
+                  <div className="text-[7px] opacity-90 font-medium">
+                    ★ {assignment.score.toFixed(1)}
                   </div>
+                  <div className="text-[6px] opacity-75 uppercase tracking-wider">
+                    {employee.team.slice(0, 3)}
+                  </div>
+                </>
+              ) : assignment ? (
+                <div className="text-[8px] font-semibold">
+                  {assignment.employee_id.slice(0, 4)}
                 </div>
               ) : (
-                <div className="w-6 h-6 rounded border border-current opacity-40" />
+                <div className="w-8 h-8 rounded-lg border-2 border-dashed border-current opacity-30 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-current opacity-50"></div>
+                </div>
               )}
             </div>
 
-            {/* Accessibility indicator */}
-            {seat.is_accessible && (
-              <div className="absolute bottom-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></div>
-            )}
-            
-            {/* Window indicator */}
-            {seat.is_window && (
-              <div className="absolute top-0 right-0 w-2 h-2 bg-yellow-500 rounded-full"></div>
+            {/* Enhanced feature indicators */}
+            <div className="absolute top-1 right-1 flex flex-col gap-0.5">
+              {seat.is_window && (
+                <div className="w-2 h-2 bg-amber-400 rounded-full shadow-sm border border-amber-300" title="Window seat"></div>
+              )}
+              {seat.is_accessible && (
+                <div className="w-2 h-2 bg-emerald-400 rounded-full shadow-sm border border-emerald-300" title="Accessible"></div>
+              )}
+            </div>
+
+            {/* High score indicator */}
+            {assignment && assignment.score > 8.5 && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full flex items-center justify-center shadow-sm">
+                <div className="text-[6px] text-white font-bold">★</div>
+              </div>
             )}
           </div>
         </TooltipTrigger>
@@ -142,49 +169,86 @@ const SeatMap: React.FC<SeatMapProps> = ({
     );
   };
 
-  // Render floor grid
+  // Enhanced floor rendering with better organization and stats
   const renderFloor = (floor: number, floorSeats: Seat[]) => {
     const { cols, rows } = getGridDimensions(floorSeats);
     const assignedCount = floorSeats.filter(s => assignmentMap.has(s.seat_id)).length;
+    const utilization = Math.round((assignedCount / floorSeats.length) * 100);
+    const averageScore = floorSeats
+      .map(s => assignmentMap.get(s.seat_id)?.score)
+      .filter(Boolean)
+      .reduce((sum, score, _, arr) => sum + (score || 0) / arr.length, 0);
     
     return (
-      <Card key={floor} className="shadow-glow">
-        <CardHeader className="pb-3">
+      <Card key={floor} className="shadow-glow border-primary/10">
+        <CardHeader className="pb-3 bg-gradient-to-r from-primary/5 to-transparent">
           <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              Floor {floor}
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Building className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <div className="font-semibold">Floor {floor}</div>
+                <div className="text-xs text-muted-foreground">
+                  {floor === 1 ? "Main workspace" : "Executive & meetings"}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Users className="h-3 w-3" />
-              {assignedCount}/{floorSeats.length}
+            <div className="text-right">
+              <div className="flex items-center gap-2 text-sm">
+                <Users className="h-3 w-3" />
+                <span className="font-medium">{assignedCount}/{floorSeats.length}</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {utilization}% occupied
+                {averageScore > 0 && ` • ★${averageScore.toFixed(1)} avg`}
+              </div>
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div 
-            className="grid gap-1 p-4 bg-muted/20 rounded-lg"
+            className="grid gap-2 p-6 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/50"
             style={{
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gridTemplateRows: `repeat(${rows}, 1fr)`,
+              gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
             }}
           >
             {floorSeats.map(renderSeat)}
           </div>
           
-          {/* Floor legend */}
-          <div className="mt-4 flex flex-wrap gap-2 text-xs">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-              <span>Window</span>
+          {/* Enhanced floor legend with stats */}
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Features</div>
+              <div className="flex flex-wrap gap-3 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 bg-amber-400 rounded-full shadow-sm"></div>
+                  <span>Window ({floorSeats.filter(s => s.is_window).length})</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full shadow-sm"></div>
+                  <span>Accessible ({floorSeats.filter(s => s.is_accessible).length})</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 bg-muted border border-border rounded"></div>
+                  <span>Available ({floorSeats.length - assignedCount})</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span>Accessible</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-muted border border-border rounded"></div>
-              <span>Available</span>
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Zones</div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {["ZoneA", "ZoneB", "ZoneC"].map(zone => {
+                  const zoneSeats = floorSeats.filter(s => s.zone === zone);
+                  const zoneAssigned = zoneSeats.filter(s => assignmentMap.has(s.seat_id)).length;
+                  return (
+                    <Badge key={zone} variant="outline" className="text-xs">
+                      {zone}: {zoneAssigned}/{zoneSeats.length}
+                    </Badge>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </CardContent>

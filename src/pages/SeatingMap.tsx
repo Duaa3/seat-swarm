@@ -290,22 +290,49 @@ const SeatingMapPage = () => {
         </TabsList>
 
         <TabsContent value="map" className="space-y-6">
-          {/* Team Legend */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Team Colors</CardTitle>
+          {/* Enhanced Team Legend */}
+          <Card className="border-primary/20">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <div className="w-2 h-2 bg-gradient-primary rounded-full"></div>
+                Team Colors & Distribution
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {Array.from(new Set(employees.map(e => e.team))).map((team) => {
-                  const teamSize = employees.filter(e => e.team === team).length;
-                  const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA"];
-                  const index = teams.indexOf(team);
-                  const teamBgClass = `team-bg-${(index % 8) + 1}`;
+                  const teamEmployees = employees.filter(e => e.team === team);
+                  const teamSize = teamEmployees.length;
+                  const assignedToday = assignments.filter(a => {
+                    const emp = employees.find(e => e.employee_id === a.employee_id);
+                    return emp?.team === team;
+                  }).length;
+                  
+                  const teamMapping: Record<string, string> = {
+                    "Network": "team-bg-1",
+                    "CoreOps": "team-bg-2", 
+                    "Design": "team-bg-3",
+                    "Sales": "team-bg-4",
+                    "Ops": "team-bg-5",
+                    "Data": "team-bg-6",
+                    "QA": "team-bg-7",
+                  };
+                  const teamBgClass = teamMapping[team] || "team-bg-8";
+                  
                   return (
-                    <Badge key={team} variant="secondary" className={`${teamBgClass} text-white border-0`}>
-                      {team} ({teamSize})
-                    </Badge>
+                    <div key={team} className="relative group">
+                      <div className={`${teamBgClass} text-white p-3 rounded-lg shadow-sm border border-white/20 transition-all hover:shadow-md hover:scale-105`}>
+                        <div className="font-semibold text-sm">{team}</div>
+                        <div className="text-xs opacity-90">
+                          {teamSize} total
+                        </div>
+                        {assignedToday > 0 && (
+                          <div className="text-xs font-medium mt-1">
+                            {assignedToday} today
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
