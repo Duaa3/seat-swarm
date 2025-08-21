@@ -39,7 +39,26 @@ const SeatingMapPage = () => {
   const [meta, setMeta] = React.useState<any>(null);
   
   // Get real schedule data from the database
-  const { schedule: realSchedule, loading: scheduleLoading } = useScheduleData();
+  const { schedule: realSchedule, loading: scheduleLoading, loadScheduleForWeek } = useScheduleData();
+  
+  // Refresh schedule data when the page is focused or when user changes days
+  React.useEffect(() => {
+    const refreshSchedule = () => {
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay() + 1);
+      loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
+    };
+    
+    // Refresh on mount and when day changes
+    refreshSchedule();
+    
+    // Refresh when window regains focus (when user switches back from Schedule page)
+    const handleFocus = () => refreshSchedule();
+    window.addEventListener('focus', handleFocus);
+    
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [selectedDay, loadScheduleForWeek]);
   
   // Use real schedule if available, otherwise fallback to mock
   const schedule = React.useMemo(() => {
@@ -219,6 +238,20 @@ const SeatingMapPage = () => {
             <Button variant="outline" onClick={exportLayout}>
               <Download className="h-4 w-4 mr-2" />
               Export
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                const today = new Date();
+                const weekStart = new Date(today);
+                weekStart.setDate(today.getDate() - today.getDay() + 1);
+                loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
+                toast({ title: "Refreshed", description: "Schedule data updated" });
+              }}
+              disabled={scheduleLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${scheduleLoading ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
             <Button variant="hero" onClick={assignSeatsForDay} disabled={loading}>
               <MapPin className="h-4 w-4 mr-2" />
