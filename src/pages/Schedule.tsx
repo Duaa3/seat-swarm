@@ -284,10 +284,10 @@ const SchedulePage = () => {
   }, []);
 
   return (
-      <div className="p-6 space-y-6 animate-fade-in">
+      <div className="p-6 space-y-6 animate-fade-in bg-background">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Schedule Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">🔄 NEW Schedule Management</h1>
           <p className="text-muted-foreground mt-2">
             Generate and optimize weekly schedules for hybrid work using persistent database storage
           </p>
