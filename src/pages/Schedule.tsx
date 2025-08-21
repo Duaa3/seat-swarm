@@ -28,7 +28,7 @@ const SchedulePage = () => {
   // Database hooks
   const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
   const { seats: dbSeats, loading: seatsLoading } = useSeats();
-  const { schedule, assignments, saveSchedule, saveSeatAssignments, clearSchedule, loading: scheduleLoading } = useScheduleData();
+  const { schedule, assignments, setSchedule, setAssignments, saveSchedule, saveSeatAssignments, clearSchedule, loading: scheduleLoading } = useScheduleData();
 
   // UI State
   const [selectedDay, setSelectedDay] = React.useState<DayKey>("Wed");
@@ -82,17 +82,37 @@ const SchedulePage = () => {
       if (result.success && result.data) {
         console.log('Generated schedule:', result.data.schedule);
 
-        // Convert API response to our schedule format
+        // Convert API response to our schedule format - extract employee IDs only
         const newSchedule: Record<DayKey, string[]> = {
-          Mon: result.data.schedule.Mon || [],
-          Tue: result.data.schedule.Tue || [],
-          Wed: result.data.schedule.Wed || [],
-          Thu: result.data.schedule.Thu || [],
-          Fri: result.data.schedule.Fri || []
+          Mon: (result.data.schedule.Mon || []).map((item: any) => item.employeeId || item),
+          Tue: (result.data.schedule.Tue || []).map((item: any) => item.employeeId || item),
+          Wed: (result.data.schedule.Wed || []).map((item: any) => item.employeeId || item),
+          Thu: (result.data.schedule.Thu || []).map((item: any) => item.employeeId || item),
+          Fri: (result.data.schedule.Fri || []).map((item: any) => item.employeeId || item)
         };
 
-        // Update the schedule state (API handles database saving)
-        // No need to call setSchedule since API saves to DB directly
+        // Convert API response to assignments format
+        const newAssignments: Record<DayKey, Record<string, string>> = {
+          Mon: {},
+          Tue: {},
+          Wed: {},
+          Thu: {},
+          Fri: {}
+        };
+
+        // Extract seat assignments from the API response
+        DAYS.forEach(day => {
+          const dayData = result.data.schedule[day] || [];
+          dayData.forEach((item: any) => {
+            if (item.employeeId && item.seatId) {
+              newAssignments[day][item.employeeId] = item.seatId;
+            }
+          });
+        });
+
+        // Update both schedule and assignments state
+        saveSchedule(newSchedule, dbEmployees, result.data.weekStartDate);
+        setAssignments(newAssignments);
         
         setWarnings([]);
         
