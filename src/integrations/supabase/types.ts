@@ -239,7 +239,7 @@ export type Database = {
           productivity_score: number | null
           rules_applied: string[] | null
           satisfaction_score: number | null
-          seat_id: string
+          seat_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -256,7 +256,7 @@ export type Database = {
           productivity_score?: number | null
           rules_applied?: string[] | null
           satisfaction_score?: number | null
-          seat_id: string
+          seat_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -273,7 +273,7 @@ export type Database = {
           productivity_score?: number | null
           rules_applied?: string[] | null
           satisfaction_score?: number | null
-          seat_id?: string
+          seat_id?: string | null
           updated_at?: string | null
         }
         Relationships: [

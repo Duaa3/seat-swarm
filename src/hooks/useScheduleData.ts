@@ -55,8 +55,8 @@ export function useScheduleData() {
             day_of_week: day,
             assignment_type: 'manual' as const,
             model_version: modelVersion,
-            constraints_met: { scheduled: true },
-            seat_id: 'TBD' // Placeholder seat ID - will be assigned later
+            constraints_met: { scheduled: true }
+            // seat_id will be NULL until seats are assigned later
           });
         }
       }
