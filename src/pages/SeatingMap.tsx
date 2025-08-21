@@ -231,7 +231,10 @@ const SeatingMapPage = () => {
             </SelectContent>
           </Select>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={clearAssignments}>
+            <Button 
+              variant="outline" 
+              onClick={clearAssignments}
+            >
               <RefreshCw className="h-4 w-4 mr-2" />
               Clear
             </Button>
@@ -246,18 +249,18 @@ const SeatingMapPage = () => {
                 const weekStart = new Date(today);
                 weekStart.setDate(today.getDate() - today.getDay() + 1);
                 loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
-                toast({ title: "Refreshed", description: "Schedule data updated" });
+                toast({ title: "Refreshed", description: "Schedule data updated from database" });
               }}
               disabled={scheduleLoading}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${scheduleLoading ? 'animate-spin' : ''}`} />
-              Refresh
+              Refresh Data
             </Button>
             <Button variant="hero" onClick={assignSeatsForDay} disabled={loading}>
               <MapPin className="h-4 w-4 mr-2" />
               {loading ? "Assigning..." : "Assign Seats"}
             </Button>
-          </div>
+           </div>
         </div>
       </div>
 
