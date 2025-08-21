@@ -99,7 +99,7 @@ serve(async (req) => {
 
     console.log(`Generating schedule for ${employees.length} employees and ${seats.length} seats`);
 
-    // Generate schedule using capacity-based algorithm
+    // Generate schedule using capacity-based algorithm with seat assignments
     const schedule = generateScheduleLogic(employees, seats, dayCapacities, deptCapacity);
     
     // Save schedule to database
@@ -109,9 +109,10 @@ serve(async (req) => {
       const assignmentDate = new Date(weekStartDate);
       assignmentDate.setDate(assignmentDate.getDate() + dayIndex);
       
-      for (const employeeId of schedule[day]) {
+      for (const assignment of schedule[day]) {
         assignmentRecords.push({
-          employee_id: employeeId,
+          employee_id: assignment.employeeId,
+          seat_id: assignment.seatId,
           assignment_date: assignmentDate.toISOString().split('T')[0],
           day_of_week: day,
           assignment_type: 'scheduled',
@@ -191,14 +192,19 @@ serve(async (req) => {
   }
 });
 
+interface Assignment {
+  employeeId: string;
+  seatId: string;
+}
+
 function generateScheduleLogic(
   employees: any[],
   seats: any[],
   dayCapacities: Record<DayKey, number>,
   deptCapacity: number
-): Record<DayKey, string[]> {
+): Record<DayKey, Assignment[]> {
   
-  const schedule: Record<DayKey, string[]> = {
+  const schedule: Record<DayKey, Assignment[]> = {
     Mon: [], Tue: [], Wed: [], Thu: [], Fri: []
   };
 
@@ -220,6 +226,7 @@ function generateScheduleLogic(
   DAYS.forEach((day) => {
     const capSeats = Math.floor((dayCapacities[day] / 100) * seats.length);
     const deptCount: Record<string, number> = Object.fromEntries(departments.map(d => [d, 0]));
+    const availableSeats = [...seats]; // Copy seats for this day
 
     // Get employees who prefer this day, then others
     const preferred = employees.filter(emp => 
@@ -238,9 +245,42 @@ function generateScheduleLogic(
     for (const emp of order) {
       if (schedule[day].length >= capSeats) break;
       if (deptCount[emp.department] >= perDeptDailyCap[emp.department]) continue;
+      if (availableSeats.length === 0) break;
       
-      schedule[day].push(emp.employee_id);
-      deptCount[emp.department]++;
+      // Find best seat for employee
+      let assignedSeat = null;
+      
+      // Prioritize accessible seats for employees who need them
+      if (emp.needs_accessible) {
+        assignedSeat = availableSeats.find(seat => seat.is_accessible);
+      }
+      
+      // Prioritize window seats for employees who prefer them
+      if (!assignedSeat && emp.prefer_window) {
+        assignedSeat = availableSeats.find(seat => seat.is_window);
+      }
+      
+      // Prioritize preferred zone
+      if (!assignedSeat && emp.preferred_zone) {
+        assignedSeat = availableSeats.find(seat => seat.zone === emp.preferred_zone);
+      }
+      
+      // Otherwise, take any available seat
+      if (!assignedSeat) {
+        assignedSeat = availableSeats[0];
+      }
+      
+      if (assignedSeat) {
+        schedule[day].push({
+          employeeId: emp.employee_id,
+          seatId: assignedSeat.id
+        });
+        deptCount[emp.department]++;
+        
+        // Remove assigned seat from available seats
+        const seatIndex = availableSeats.findIndex(s => s.id === assignedSeat.id);
+        availableSeats.splice(seatIndex, 1);
+      }
     }
   });
 
