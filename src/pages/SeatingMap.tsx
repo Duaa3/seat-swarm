@@ -62,19 +62,35 @@ const SeatingMapPage = () => {
   }, [seatAssignments, selectedDay]);
 
   const dayStats = React.useMemo(() => {
-    const scheduled = schedule[selectedDay]?.length || 0;
+    // Get scheduled employees for the selected day from the loaded schedule
+    const scheduledEmployees = schedule[selectedDay] || [];
+    const scheduledCount = scheduledEmployees.length;
+    
+    // Get actual seat assignments for the selected day
     const assigned = dayAssignments.length;
+    const unassigned = Math.max(0, scheduledCount - assigned);
+    
+    // Floor distribution for assigned seats
+    const floor1Assignments = dayAssignments.filter(assignment => {
+      const seat = dbSeats.find(s => s.seat_id === assignment.seat_id);
+      return seat?.floor === 1;
+    });
+    const floor2Assignments = dayAssignments.filter(assignment => {
+      const seat = dbSeats.find(s => s.seat_id === assignment.seat_id);
+      return seat?.floor === 2;
+    });
+    
     const floor1Seats = legacySeats.filter(s => s.floor === 1);
     const floor2Seats = legacySeats.filter(s => s.floor === 2);
     
     return {
-      scheduled,
+      scheduled: scheduledCount,
       assigned,
-      unassigned: Math.max(0, scheduled - assigned),
-      floor1: { assigned: 0, total: floor1Seats.length },
-      floor2: { assigned: 0, total: floor2Seats.length },
+      unassigned,
+      floor1: { assigned: floor1Assignments.length, total: floor1Seats.length },
+      floor2: { assigned: floor2Assignments.length, total: floor2Seats.length },
     };
-  }, [selectedDay, schedule, dayAssignments, legacySeats]);
+  }, [selectedDay, schedule, dayAssignments, legacySeats, dbSeats]);
 
   const assignSeatsForDay = async () => {
     const dayEmployees = schedule[selectedDay] || [];
@@ -253,11 +269,11 @@ const SeatingMapPage = () => {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Available Seats</CardTitle>
+            <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{legacySeats.length}</div>
-            <p className="text-xs text-muted-foreground">total office seats</p>
+            <div className="text-2xl font-bold text-orange-600">{dayStats.unassigned}</div>
+            <p className="text-xs text-muted-foreground">need seats</p>
           </CardContent>
         </Card>
         <Card>
@@ -278,6 +294,16 @@ const SeatingMapPage = () => {
             <div className="text-center py-8">
               <div className="text-muted-foreground">
                 {loading ? "Loading office data..." : "No data available. Please load employee and seat data from the Dashboard."}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (schedule[selectedDay]?.length || 0) === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">
+                No employees scheduled for {selectedDay}. Generate a schedule from the Schedule page first.
               </div>
             </div>
           </CardContent>

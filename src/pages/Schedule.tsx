@@ -118,7 +118,19 @@ const SchedulePage = () => {
         const today = new Date();
         const weekStart = new Date(today);
         weekStart.setDate(today.getDate() - today.getDay() + 1);
-        await saveSchedule(newSchedule, dbEmployees, weekStart.toISOString().split('T')[0]);
+        try {
+          console.log('Saving schedule to database...', newSchedule);
+          await saveSchedule(newSchedule, dbEmployees, weekStart.toISOString().split('T')[0]);
+          console.log('Schedule saved successfully');
+        } catch (saveError) {
+          console.error('Error saving schedule:', saveError);
+          // Don't throw here, let the user know but continue
+          toast({
+            title: "Schedule generated but not saved",
+            description: `Schedule created but couldn't save to database: ${saveError instanceof Error ? saveError.message : 'Unknown error'}`,
+            variant: "destructive"
+          });
+        }
         
         setWarnings([]);
         

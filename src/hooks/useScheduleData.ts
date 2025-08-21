@@ -38,6 +38,7 @@ export function useScheduleData() {
   ) => {
     try {
       setLoading(true);
+      console.log('saveSchedule called with:', { newSchedule, weekStartDate });
       
       // Convert schedule to assignment records
       const assignmentRecords = [];
@@ -53,7 +54,7 @@ export function useScheduleData() {
             employee_id: employeeId,
             assignment_date: assignmentDate.toISOString().split('T')[0],
             day_of_week: day,
-            assignment_type: 'manual' as const,
+            assignment_type: 'scheduled' as const,
             model_version: modelVersion,
             constraints_met: { scheduled: true }
             // seat_id will be NULL until seats are assigned later
@@ -61,8 +62,13 @@ export function useScheduleData() {
         }
       }
       
+      console.log('Assignment records to save:', assignmentRecords);
+      
       if (assignmentRecords.length > 0) {
         await bulkSaveScheduleAssignments(assignmentRecords);
+        console.log('Bulk save completed');
+      } else {
+        console.log('No assignment records to save');
       }
       
       setSchedule(newSchedule);
@@ -117,7 +123,7 @@ export function useScheduleData() {
         seat_id: seatId,
         assignment_date: assignmentDate,
         day_of_week: day,
-        assignment_type: 'auto' as const,
+        assignment_type: 'assigned' as const,
         model_version: modelVersion,
         confidence_score: 0.8, // Default confidence for heuristic assignments
         constraints_met: { 
@@ -238,12 +244,12 @@ export function useScheduleData() {
       for (const assignment of assignments) {
         const day = assignment.day_of_week as DayKey;
         if (day in newSchedule) {
-          if (assignment.assignment_type === 'manual') {
-            newSchedule[day].push(assignment.employee_id);
-          }
-          if (assignment.assignment_type === 'auto' && assignment.seat_id) {
-            newSeatAssignments[day][assignment.employee_id] = assignment.seat_id;
-          }
+        if (assignment.assignment_type === 'scheduled') {
+          newSchedule[day].push(assignment.employee_id);
+        }
+        if (assignment.assignment_type === 'assigned' && assignment.seat_id) {
+          newSeatAssignments[day][assignment.employee_id] = assignment.seat_id;
+        }
         }
       }
       

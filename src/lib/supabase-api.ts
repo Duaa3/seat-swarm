@@ -171,10 +171,10 @@ export async function getScheduleAssignments(dateFrom?: string, dateTo?: string)
 
 export async function saveScheduleAssignment(assignment: {
   employee_id: string;
-  seat_id: string;
+  seat_id?: string;
   assignment_date: string;
   day_of_week: string;
-        assignment_type: 'manual' | 'auto';
+  assignment_type: 'manual' | 'auto' | 'scheduled' | 'assigned';
   satisfaction_score?: number;
   confidence_score?: number;
   model_version?: string;
@@ -200,7 +200,7 @@ export async function bulkSaveScheduleAssignments(assignments: Array<{
   seat_id?: string;
   assignment_date: string;
   day_of_week: string;
-  assignment_type: 'manual' | 'auto';
+  assignment_type: 'manual' | 'auto' | 'scheduled' | 'assigned';
   satisfaction_score?: number;
   confidence_score?: number;
   model_version?: string;
@@ -209,7 +209,7 @@ export async function bulkSaveScheduleAssignments(assignments: Array<{
 }>): Promise<DbScheduleAssignment[]> {
   const formattedAssignments = assignments.map(assignment => ({
     employee_id: assignment.employee_id,
-    seat_id: assignment.seat_id || '',
+    seat_id: assignment.seat_id || null,
     assignment_date: assignment.assignment_date,
     day_of_week: assignment.day_of_week,
     assignment_type: assignment.assignment_type,
