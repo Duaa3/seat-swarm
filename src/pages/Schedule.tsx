@@ -25,6 +25,7 @@ import { generateScheduleAPI } from "@/lib/api-client";
 import { Calendar, Users, MapPin, AlertTriangle, Download, Save, RotateCcw, Loader2 } from "lucide-react";
 
 const SchedulePage = () => {
+  // Component handles schedule generation and management
   // Database hooks
   const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
   const { seats: dbSeats, loading: seatsLoading } = useSeats();
