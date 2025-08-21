@@ -112,8 +112,8 @@ const SchedulePage = () => {
         });
 
         // Update both schedule and assignments state
-        saveSchedule(newSchedule, dbEmployees, result.data.weekStartDate);
-        setAssignments(newAssignments);
+        setSchedule(newSchedule);
+        // Don't save seat assignments from API yet - they'll be assigned separately
         
         setWarnings([]);
         
