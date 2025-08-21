@@ -21,6 +21,7 @@ import {
 import { useEmployees } from "@/hooks/useEmployees";
 import { useSeats } from "@/hooks/useSeats";
 import { useScheduleData } from "@/hooks/useScheduleData";
+import { generateScheduleAPI } from "@/lib/api-client";
 import { Calendar, Users, MapPin, AlertTriangle, Download, Save, RotateCcw, Loader2 } from "lucide-react";
 
 const SchedulePage = () => {
@@ -65,46 +66,43 @@ const SchedulePage = () => {
     try {
       console.log('Generating schedule with:', { employees: dbEmployees.length, seats: dbSeats.length });
       
-      // Generate schedule using the same logic as Index page
-      const perDeptCounts = Object.fromEntries(allDepts.map((d) => [d, legacyEmployees.filter((e) => e.dept === d).length])) as Record<string, number>;
-      const perDeptDailyCap = Object.fromEntries(Object.entries(perDeptCounts).map(([d, n]) => [d, Math.floor((deptCap / 100) * n)])) as Record<string, number>;
-
-      const newSchedule: Record<DayKey, string[]> = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] };
-
-      DAYS.forEach((day) => {
-        const capSeats = Math.floor((dayCaps[day] / 100) * legacySeats.length);
-        const deptCount: Record<string, number> = Object.fromEntries(allDepts.map((d) => [d, 0]));
-
-        // Prefer employees who like this day, then fill others
-        const preferred = legacyEmployees.filter((e) => e.preferredDays.includes(day));
-        const others = legacyEmployees.filter((e) => !e.preferredDays.includes(day));
-        const order = [...preferred, ...others];
-
-        for (const e of order) {
-          if (newSchedule[day].length >= capSeats) break;
-          if (deptCount[e.dept] >= perDeptDailyCap[e.dept]) continue;
-          newSchedule[day].push(e.id);
-          deptCount[e.dept]++;
-        }
+      // Use the API to generate schedule
+      const result = await generateScheduleAPI({
+        dayCapacities: {
+          Mon: dayCaps.Mon,
+          Tue: dayCaps.Tue,
+          Wed: dayCaps.Wed,
+          Thu: dayCaps.Thu,
+          Fri: dayCaps.Fri
+        },
+        deptCapacity: deptCap,
+        teamClusters: clusterTeams
       });
 
-      console.log('Generated schedule:', newSchedule);
+      if (result.success && result.data) {
+        console.log('Generated schedule:', result.data.schedule);
 
-      // Save schedule to database
-      const today = new Date();
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay() + 1); // Start of current week (Monday)
-      
-      await saveSchedule(newSchedule, dbEmployees, weekStart.toISOString().split('T')[0]);
-      
-      console.log('Schedule saved to database');
-      
-      setWarnings([]);
-      
-      toast({
-        title: "Schedule generated and saved",
-        description: `Generated schedule for ${Object.values(newSchedule).flat().length} employee-days.`,
-      });
+        // Convert API response to our schedule format
+        const newSchedule: Record<DayKey, string[]> = {
+          Mon: result.data.schedule.Mon || [],
+          Tue: result.data.schedule.Tue || [],
+          Wed: result.data.schedule.Wed || [],
+          Thu: result.data.schedule.Thu || [],
+          Fri: result.data.schedule.Fri || []
+        };
+
+        // Update the schedule state (API handles database saving)
+        // No need to call setSchedule since API saves to DB directly
+        
+        setWarnings([]);
+        
+        toast({
+          title: "Schedule generated successfully",
+          description: `Generated ${result.data.assignments} assignments for week starting ${result.data.weekStartDate}`,
+        });
+      } else {
+        throw new Error(result.error || 'Failed to generate schedule');
+      }
     } catch (error) {
       console.error('Error generating schedule:', error);
       toast({
@@ -408,7 +406,7 @@ const SchedulePage = () => {
             </Button>
 
             {/* Assign Seats Button */}
-            {Object.values(schedule).some(day => day.length > 0) && (
+            {Object.values(schedule).some((day: string[]) => day.length > 0) && (
               <Button 
                 onClick={assignSeatsForDay} 
                 disabled={loading || !schedule[selectedDay]?.length}
@@ -428,7 +426,7 @@ const SchedulePage = () => {
             )}
 
             {/* Day Selection for Seat Assignment */}
-            {Object.values(schedule).some(day => day.length > 0) && (
+            {Object.values(schedule).some((day: string[]) => day.length > 0) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm">Select Day for Seat Assignment</CardTitle>
