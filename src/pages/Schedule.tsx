@@ -113,7 +113,12 @@ const SchedulePage = () => {
 
         // Update both schedule and assignments state
         setSchedule(newSchedule);
-        // Don't save seat assignments from API yet - they'll be assigned separately
+        
+        // Save the schedule to database
+        const today = new Date();
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay() + 1);
+        await saveSchedule(newSchedule, dbEmployees, weekStart.toISOString().split('T')[0]);
         
         setWarnings([]);
         
@@ -134,89 +139,7 @@ const SchedulePage = () => {
     }
   };
 
-  const assignSeatsForDay = async () => {
-    const dayEmployees = schedule[selectedDay] || [];
-    if (dayEmployees.length === 0) {
-      toast({
-        title: "No employees scheduled",
-        description: `No employees are scheduled for ${selectedDay}.`,
-      });
-      return;
-    }
-
-    if (!isDataLoaded) {
-      toast({
-        title: "No data loaded", 
-        description: "Please load employee and seat data first.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // Use same assignment logic as Index page
-      const dayAssign: Record<string, string> = {};
-      const clusteredIds = dayEmployees.filter((id) => clusterTeams.includes(legacyEmployees.find((e) => e.id === id)?.team || ""));
-      const nonClusteredIds = dayEmployees.filter((id) => !clusteredIds.includes(id));
-
-      // Get seats by floor
-      const floor1Seats = legacySeats.filter(s => s.floor === 1);
-      const floor2Seats = legacySeats.filter(s => s.floor === 2);
-      
-      const dayTotal = dayEmployees.length;
-      const floor1Cap = floor1Seats.length;
-      const floor2Cap = floor2Seats.length;
-
-      let f1Slots = Math.min(floor1Cap, Math.ceil(dayTotal / 2));
-      let f2Slots = Math.min(floor2Cap, dayTotal - f1Slots);
-
-      const placeList = (list: string[], seatsPool: string[]) => {
-        for (let i = 0; i < list.length && i < seatsPool.length; i++) {
-          dayAssign[list[i]] = seatsPool[i];
-        }
-        return seatsPool.slice(list.length);
-      };
-
-      let f1Seats = floor1Seats.map((s) => s.id);
-      let f2Seats = floor2Seats.map((s) => s.id);
-
-      // Place clusters first on the larger slot floor
-      const f1First = f1Slots >= f2Slots;
-      if (f1First) {
-        f1Seats = placeList(clusteredIds, f1Seats);
-        f2Seats = placeList(nonClusteredIds, f2Seats);
-      } else {
-        f2Seats = placeList(clusteredIds, f2Seats);
-        f1Seats = placeList(nonClusteredIds, f1Seats);
-      }
-
-      // Fill remaining employees
-      const remaining = dayEmployees.filter((id) => !dayAssign[id]);
-      const allRemainingSeats = [...f1Seats, ...f2Seats];
-      for (let i = 0; i < remaining.length && i < allRemainingSeats.length; i++) {
-        dayAssign[remaining[i]] = allRemainingSeats[i];
-      }
-
-      // Save assignments to database
-      const today = new Date();
-      const dayIndex = DAYS.indexOf(selectedDay);
-      const assignmentDate = new Date(today);
-      assignmentDate.setDate(today.getDate() - today.getDay() + 1 + dayIndex);
-
-      await saveSeatAssignments(dayAssign, selectedDay, dbSeats, dbEmployees, assignmentDate.toISOString().split('T')[0]);
-
-      toast({
-        title: "Seats assigned and saved",
-        description: `Assigned ${Object.keys(dayAssign).length} seats for ${selectedDay}.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error assigning seats",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive",
-      });
-    }
-  };
+  // Seat assignment moved to SeatingMap page
 
   const handleReset = () => {
     clearSchedule();
@@ -426,51 +349,12 @@ const SchedulePage = () => {
               )}
             </Button>
 
-            {/* Assign Seats Button */}
+            {/* Note about seat assignment */}
             {Object.values(schedule).some((day: string[]) => day.length > 0) && (
-              <Button 
-                onClick={assignSeatsForDay} 
-                disabled={loading || !schedule[selectedDay]?.length}
-                variant="outline"
-                className="w-full"
-                size="lg"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Assigning...
-                  </>
-                ) : (
-                  `Assign Seats for ${selectedDay}`
-                )}
-              </Button>
-            )}
-
-            {/* Day Selection for Seat Assignment */}
-            {Object.values(schedule).some((day: string[]) => day.length > 0) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Select Day for Seat Assignment</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-5 gap-2">
-                    {DAYS.map(day => (
-                      <Button
-                        key={day}
-                        variant={selectedDay === day ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedDay(day)}
-                        disabled={!schedule[day]?.length}
-                        className="text-xs"
-                      >
-                        {day}
-                        {schedule[day]?.length ? (
-                          <Badge variant="secondary" className="ml-1 text-xs">
-                            {schedule[day].length}
-                          </Badge>
-                        ) : null}
-                      </Button>
-                    ))}
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="pt-4">
+                  <div className="text-sm text-blue-700">
+                    ✅ Schedule generated! Go to the <strong>Seating Map</strong> page to assign seats to employees.
                   </div>
                 </CardContent>
               </Card>

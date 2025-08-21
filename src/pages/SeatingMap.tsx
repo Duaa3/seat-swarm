@@ -18,17 +18,18 @@ import { MapPin, Users, RefreshCw, Download, Loader2 } from "lucide-react";
 
 const SeatingMapPage = () => {
   const [selectedDay, setSelectedDay] = React.useState<DayKey>("Wed");
+  const [assignLoading, setAssignLoading] = React.useState(false);
   
   // Use real database data
   const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
   const { seats: dbSeats, loading: seatsLoading } = useSeats();
-  const { schedule, assignments: seatAssignments, loading: scheduleLoading, loadScheduleForWeek } = useScheduleData();
+  const { schedule, assignments: seatAssignments, loading: scheduleLoading, loadScheduleForWeek, saveSeatAssignments } = useScheduleData();
   
   // Convert to legacy format for components
   const legacyEmployees = React.useMemo(() => dbEmployees.map(toLegacyEmployee), [dbEmployees]);
   const legacySeats = React.useMemo(() => dbSeats.map(toLegacySeat), [dbSeats]);
   
-  const loading = employeesLoading || seatsLoading || scheduleLoading;
+  const loading = employeesLoading || seatsLoading || scheduleLoading || assignLoading;
   const isDataLoaded = dbEmployees.length > 0 && dbSeats.length > 0;
   
   // Refresh schedule data when the page is focused or when user changes days
@@ -74,6 +75,60 @@ const SeatingMapPage = () => {
       floor2: { assigned: 0, total: floor2Seats.length },
     };
   }, [selectedDay, schedule, dayAssignments, legacySeats]);
+
+  const assignSeatsForDay = async () => {
+    const dayEmployees = schedule[selectedDay] || [];
+    if (dayEmployees.length === 0) {
+      toast({
+        title: "No employees scheduled",
+        description: `No employees are scheduled for ${selectedDay}. Generate a schedule first.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!isDataLoaded) {
+      toast({
+        title: "No data loaded", 
+        description: "Please load employee and seat data first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setAssignLoading(true);
+      
+      // Simple assignment logic - assign seats in order
+      const dayAssign: Record<string, string> = {};
+      const availableSeats = legacySeats.map(s => s.id);
+      
+      for (let i = 0; i < dayEmployees.length && i < availableSeats.length; i++) {
+        dayAssign[dayEmployees[i]] = availableSeats[i];
+      }
+
+      // Save assignments to database
+      const today = new Date();
+      const dayIndex = DAYS.indexOf(selectedDay);
+      const assignmentDate = new Date(today);
+      assignmentDate.setDate(today.getDate() - today.getDay() + 1 + dayIndex);
+
+      await saveSeatAssignments(dayAssign, selectedDay, dbSeats, dbEmployees, assignmentDate.toISOString().split('T')[0]);
+
+      toast({
+        title: "Seats assigned and saved",
+        description: `Assigned ${Object.keys(dayAssign).length} seats for ${selectedDay}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error assigning seats",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setAssignLoading(false);
+    }
+  };
 
   const handleRefreshData = () => {
     const today = new Date();
@@ -144,6 +199,16 @@ const SeatingMapPage = () => {
             </SelectContent>
           </Select>
           <div className="flex gap-2">
+            {(schedule[selectedDay]?.length || 0) > 0 && dayAssignments.length === 0 && (
+              <Button 
+                onClick={assignSeatsForDay} 
+                disabled={loading}
+                className="bg-gradient-primary hover:bg-gradient-primary/80"
+              >
+                {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MapPin className="h-4 w-4 mr-2" />}
+                Assign Seats for {selectedDay}
+              </Button>
+            )}
             <Button variant="outline" onClick={exportLayout} disabled={dayAssignments.length === 0}>
               <Download className="h-4 w-4 mr-2" />
               Export
