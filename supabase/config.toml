@@ -1,1 +1,10 @@
 project_id = "vnbygqpkgtrdzidkyapa"
+
+[functions.get-employees]
+verify_jwt = false
+
+[functions.get-seats] 
+verify_jwt = false
+
+[functions.generate-schedule]
+verify_jwt = false
