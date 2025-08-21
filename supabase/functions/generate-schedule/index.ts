@@ -115,7 +115,7 @@ serve(async (req) => {
           seat_id: assignment.seatId,
           assignment_date: assignmentDate.toISOString().split('T')[0],
           day_of_week: day,
-          assignment_type: 'scheduled',
+          assignment_type: 'manual',
           model_version: 'api-v1',
           constraints_met: { 
             generated_by: 'api',

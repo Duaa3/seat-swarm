@@ -53,7 +53,7 @@ export function useScheduleData() {
             employee_id: employeeId,
             assignment_date: assignmentDate.toISOString().split('T')[0],
             day_of_week: day,
-            assignment_type: 'scheduled' as const,
+            assignment_type: 'manual' as const,
             model_version: modelVersion,
             constraints_met: { scheduled: true }
           });
@@ -116,7 +116,7 @@ export function useScheduleData() {
         seat_id: seatId,
         assignment_date: assignmentDate,
         day_of_week: day,
-        assignment_type: 'assigned' as const,
+        assignment_type: 'auto' as const,
         model_version: modelVersion,
         confidence_score: 0.8, // Default confidence for heuristic assignments
         constraints_met: { 
@@ -237,10 +237,10 @@ export function useScheduleData() {
       for (const assignment of assignments) {
         const day = assignment.day_of_week as DayKey;
         if (day in newSchedule) {
-          if (assignment.assignment_type === 'scheduled') {
+          if (assignment.assignment_type === 'manual') {
             newSchedule[day].push(assignment.employee_id);
           }
-          if (assignment.assignment_type === 'assigned' && assignment.seat_id) {
+          if (assignment.assignment_type === 'auto' && assignment.seat_id) {
             newSeatAssignments[day][assignment.employee_id] = assignment.seat_id;
           }
         }

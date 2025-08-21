@@ -174,7 +174,7 @@ export async function saveScheduleAssignment(assignment: {
   seat_id: string;
   assignment_date: string;
   day_of_week: string;
-  assignment_type: 'scheduled' | 'assigned';
+        assignment_type: 'manual' | 'auto';
   satisfaction_score?: number;
   confidence_score?: number;
   model_version?: string;
@@ -200,7 +200,7 @@ export async function bulkSaveScheduleAssignments(assignments: Array<{
   seat_id?: string;
   assignment_date: string;
   day_of_week: string;
-  assignment_type: 'scheduled' | 'assigned';
+  assignment_type: 'manual' | 'auto';
   satisfaction_score?: number;
   confidence_score?: number;
   model_version?: string;
