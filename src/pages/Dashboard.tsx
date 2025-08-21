@@ -4,18 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Users, MapPin, Calendar, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { employees, allSeats, allTeams } from "@/data/mock";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useSeats } from "@/hooks/useSeats";
 import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const { employees, loading: employeesLoading } = useEmployees();
+  const { seats, loading: seatsLoading } = useSeats();
 
   const stats = React.useMemo(() => ({
     totalEmployees: employees.length,
-    totalSeats: allSeats.length,
-    occupancyRate: 85,
-    activeTeams: allTeams.length,
-  }), []);
+    totalSeats: seats.length,
+    occupancyRate: employees.length > 0 ? Math.round((employees.length / Math.max(seats.length, 1)) * 100) : 0,
+    activeTeams: [...new Set(employees.map(emp => emp.team))].length,
+  }), [employees, seats]);
 
   const quickActions = [
     { title: "Generate Schedule", path: "/schedule", icon: Calendar, color: "bg-primary" },
@@ -35,6 +38,9 @@ const Dashboard = () => {
       description: "A new weekly schedule has been created successfully.",
     });
   };
+
+  const allTeams = [...new Set(employees.map(emp => emp.team))];
+  const isLoading = employeesLoading || seatsLoading;
 
   return (
     <div className="p-6 space-y-6">
@@ -163,7 +169,10 @@ const Dashboard = () => {
               })}
             </div>
             <div className="text-xs text-muted-foreground mt-4">
-              Teams are distributed across departments with varying hybrid schedules.
+              {isLoading ? "Loading team data..." : 
+               allTeams.length > 0 ? "Teams are distributed across departments with varying hybrid schedules." :
+               "No team data available. Load employee data to see team distribution."
+              }
             </div>
           </CardContent>
         </Card>

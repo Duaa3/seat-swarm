@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import CalendarView from "@/components/planner/CalendarView";
 import WarningsBanner from "@/components/planner/WarningsBanner";
+import { DataManager } from "@/components/DataManager";
 
 import { 
   DAYS, 
@@ -13,19 +14,22 @@ import {
   toLegacySeat
 } from "@/types/planner";
 import {
-  MOCK_EMPLOYEES, 
-  MOCK_SEATS, 
   DEFAULT_WEIGHTS, 
   DEFAULT_CONSTRAINTS,
-  Weights,
-  Employee,
-  Seat
+  Weights
 } from "@/data/mock";
-import { generateSchedule, assignSeats } from "@/lib/api";
-import { Calendar, Users, MapPin, AlertTriangle, Download, Save, RotateCcw } from "lucide-react";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useSeats } from "@/hooks/useSeats";
+import { useScheduleData } from "@/hooks/useScheduleData";
+import { Calendar, Users, MapPin, AlertTriangle, Download, Save, RotateCcw, Loader2 } from "lucide-react";
 
 const SchedulePage = () => {
-  const [schedule, setSchedule] = React.useState<Record<DayKey, string[]>>({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] });
+  // Database hooks
+  const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
+  const { seats: dbSeats, loading: seatsLoading } = useSeats();
+  const { schedule, assignments, saveSchedule, saveSeatAssignments, clearSchedule, loading: scheduleLoading } = useScheduleData();
+
+  // UI State
   const [selectedDay, setSelectedDay] = React.useState<DayKey>("Wed");
   const [dayCaps, setDayCaps] = React.useState(DEFAULT_CONSTRAINTS.dayCapacities);
   const [deptCap, setDeptCap] = React.useState(DEFAULT_CONSTRAINTS.deptCapacity);
@@ -33,44 +37,81 @@ const SchedulePage = () => {
   const [solver, setSolver] = React.useState<"greedy" | "hungarian">("greedy");
   const [weights, setWeights] = React.useState<Weights>(DEFAULT_WEIGHTS);
   const [warnings, setWarnings] = React.useState<any[]>([]);
-  const [seatAssignments, setSeatAssignments] = React.useState<Record<string, string>>({});
-  const [employees, setEmployees] = React.useState<Employee[]>(MOCK_EMPLOYEES);
-  const [seats, setSeats] = React.useState<Seat[]>(MOCK_SEATS);
-  const [loading, setLoading] = React.useState(false);
 
   // Convert to legacy format for components
-  const legacyEmployees = React.useMemo(() => employees.map(toLegacyEmployee), [employees]);
-  const legacySeats = React.useMemo(() => seats.map(toLegacySeat), [seats]);
+  const legacyEmployees = React.useMemo(() => dbEmployees.map(toLegacyEmployee), [dbEmployees]);
+  const legacySeats = React.useMemo(() => dbSeats.map(toLegacySeat), [dbSeats]);
+  
+  // Computed values
+  const allDepts = React.useMemo(() => 
+    [...new Set(dbEmployees.map(emp => emp.department))], [dbEmployees]);
+  
+  const allTeams = React.useMemo(() => 
+    [...new Set(dbEmployees.map(emp => emp.team))], [dbEmployees]);
+
+  const loading = employeesLoading || seatsLoading || scheduleLoading;
+  const isDataLoaded = dbEmployees.length > 0 && dbSeats.length > 0;
 
   const handleGenerateSchedule = async () => {
-    setLoading(true);
-    try {
-      const payload = {
-        employees,
-        constraints: {
-          day_capacities: dayCaps,
-          dept_capacity: deptCap,
-          team_clusters: clusterTeams,
-        },
-        weights,
-      };
+    if (!isDataLoaded) {
+      toast({
+        title: "No data loaded",
+        description: "Please load employee and seat data first.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-      const result = await generateSchedule(payload);
-      setSchedule(result.schedule as Record<DayKey, string[]>);
-      setWarnings(result.violations);
+    try {
+      console.log('Generating schedule with:', { employees: dbEmployees.length, seats: dbSeats.length });
+      
+      // Generate schedule using the same logic as Index page
+      const perDeptCounts = Object.fromEntries(allDepts.map((d) => [d, legacyEmployees.filter((e) => e.dept === d).length])) as Record<string, number>;
+      const perDeptDailyCap = Object.fromEntries(Object.entries(perDeptCounts).map(([d, n]) => [d, Math.floor((deptCap / 100) * n)])) as Record<string, number>;
+
+      const newSchedule: Record<DayKey, string[]> = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] };
+
+      DAYS.forEach((day) => {
+        const capSeats = Math.floor((dayCaps[day] / 100) * legacySeats.length);
+        const deptCount: Record<string, number> = Object.fromEntries(allDepts.map((d) => [d, 0]));
+
+        // Prefer employees who like this day, then fill others
+        const preferred = legacyEmployees.filter((e) => e.preferredDays.includes(day));
+        const others = legacyEmployees.filter((e) => !e.preferredDays.includes(day));
+        const order = [...preferred, ...others];
+
+        for (const e of order) {
+          if (newSchedule[day].length >= capSeats) break;
+          if (deptCount[e.dept] >= perDeptDailyCap[e.dept]) continue;
+          newSchedule[day].push(e.id);
+          deptCount[e.dept]++;
+        }
+      });
+
+      console.log('Generated schedule:', newSchedule);
+
+      // Save schedule to database
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay() + 1); // Start of current week (Monday)
+      
+      await saveSchedule(newSchedule, dbEmployees, weekStart.toISOString().split('T')[0]);
+      
+      console.log('Schedule saved to database');
+      
+      setWarnings([]);
       
       toast({
-        title: "Schedule generated",
-        description: `Generated schedule for ${result.meta.total_scheduled} employee-days.`,
+        title: "Schedule generated and saved",
+        description: `Generated schedule for ${Object.values(newSchedule).flat().length} employee-days.`,
       });
     } catch (error) {
+      console.error('Error generating schedule:', error);
       toast({
         title: "Error generating schedule",
         description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -84,34 +125,70 @@ const SchedulePage = () => {
       return;
     }
 
-    setLoading(true);
+    if (!isDataLoaded) {
+      toast({
+        title: "No data loaded", 
+        description: "Please load employee and seat data first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      const employeesForDay = employees.filter(emp => dayEmployees.includes(emp.employee_id));
+      // Use same assignment logic as Index page
+      const dayAssign: Record<string, string> = {};
+      const clusteredIds = dayEmployees.filter((id) => clusterTeams.includes(legacyEmployees.find((e) => e.id === id)?.team || ""));
+      const nonClusteredIds = dayEmployees.filter((id) => !clusteredIds.includes(id));
+
+      // Get seats by floor
+      const floor1Seats = legacySeats.filter(s => s.floor === 1);
+      const floor2Seats = legacySeats.filter(s => s.floor === 2);
       
-      const payload = {
-        employees: employeesForDay,
-        seats,
-        weights,
-        solver,
-        constraints: {
-          team_clusters: clusterTeams,
-          dept_capacity: deptCap,
-        },
+      const dayTotal = dayEmployees.length;
+      const floor1Cap = floor1Seats.length;
+      const floor2Cap = floor2Seats.length;
+
+      let f1Slots = Math.min(floor1Cap, Math.ceil(dayTotal / 2));
+      let f2Slots = Math.min(floor2Cap, dayTotal - f1Slots);
+
+      const placeList = (list: string[], seatsPool: string[]) => {
+        for (let i = 0; i < list.length && i < seatsPool.length; i++) {
+          dayAssign[list[i]] = seatsPool[i];
+        }
+        return seatsPool.slice(list.length);
       };
 
-      const result = await assignSeats(payload);
-      
-      // Convert assignments to the format expected by the calendar
-      const assignments: Record<string, string> = {};
-      result.assignments.forEach(assignment => {
-        assignments[assignment.employee_id] = assignment.seat_id;
-      });
+      let f1Seats = floor1Seats.map((s) => s.id);
+      let f2Seats = floor2Seats.map((s) => s.id);
 
-      setSeatAssignments(assignments);
-      
+      // Place clusters first on the larger slot floor
+      const f1First = f1Slots >= f2Slots;
+      if (f1First) {
+        f1Seats = placeList(clusteredIds, f1Seats);
+        f2Seats = placeList(nonClusteredIds, f2Seats);
+      } else {
+        f2Seats = placeList(clusteredIds, f2Seats);
+        f1Seats = placeList(nonClusteredIds, f1Seats);
+      }
+
+      // Fill remaining employees
+      const remaining = dayEmployees.filter((id) => !dayAssign[id]);
+      const allRemainingSeats = [...f1Seats, ...f2Seats];
+      for (let i = 0; i < remaining.length && i < allRemainingSeats.length; i++) {
+        dayAssign[remaining[i]] = allRemainingSeats[i];
+      }
+
+      // Save assignments to database
+      const today = new Date();
+      const dayIndex = DAYS.indexOf(selectedDay);
+      const assignmentDate = new Date(today);
+      assignmentDate.setDate(today.getDate() - today.getDay() + 1 + dayIndex);
+
+      await saveSeatAssignments(dayAssign, selectedDay, dbSeats, dbEmployees, assignmentDate.toISOString().split('T')[0]);
+
       toast({
-        title: "Seats assigned",
-        description: `Assigned ${result.assignments.length} seats for ${selectedDay}. Average score: ${(result.assignments.reduce((sum, a) => sum + a.score, 0) / result.assignments.length || 0).toFixed(2)}`,
+        title: "Seats assigned and saved",
+        description: `Assigned ${Object.keys(dayAssign).length} seats for ${selectedDay}.`,
       });
     } catch (error) {
       toast({
@@ -119,29 +196,21 @@ const SchedulePage = () => {
         description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleReset = () => {
-    setSchedule({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] });
-    setSeatAssignments({});
+    clearSchedule();
     setWarnings([]);
     toast({ title: "Schedule reset", description: "All data has been cleared." });
   };
 
   const handleSave = () => {
-    // Save to localStorage for demo purposes
-    const saveData = {
-      schedule,
-      seatAssignments,
-      weights,
-      constraints: { dayCaps, deptCap, clusterTeams },
-      timestamp: new Date().toISOString(),
-    };
-    localStorage.setItem('schedule_data', JSON.stringify(saveData));
-    toast({ title: "Schedule saved", description: "Schedule saved to browser storage." });
+    // Data is automatically saved to database when generated/assigned
+    toast({ 
+      title: "Data already saved", 
+      description: "All schedule and assignment data is automatically saved to the database." 
+    });
   };
 
   const handleExport = () => {
@@ -150,8 +219,8 @@ const SchedulePage = () => {
     
     DAYS.forEach(day => {
       schedule[day].forEach(empId => {
-        const employee = employees.find(e => e.employee_id === empId);
-        const seatId = seatAssignments[empId] || 'Unassigned';
+        const employee = dbEmployees.find(e => e.employee_id === empId);
+        const seatId = assignments[day]?.[empId] || 'Unassigned';
         
         csvRows.push([
           day,
@@ -177,7 +246,7 @@ const SchedulePage = () => {
   const stats = React.useMemo(() => {
     const totalScheduled = DAYS.reduce((sum, day) => sum + schedule[day].length, 0);
     const avgUtilization = DAYS.reduce((sum, day) => {
-      const capacity = Math.floor((dayCaps[day] / 100) * seats.length);
+      const capacity = Math.floor((dayCaps[day] / 100) * legacySeats.length);
       return sum + (schedule[day].length / (capacity || 1)) * 100;
     }, 0) / DAYS.length;
 
@@ -185,9 +254,9 @@ const SchedulePage = () => {
       totalScheduled,
       avgUtilization: avgUtilization || 0,
       violations: warnings.length,
-      assigned: Object.keys(seatAssignments).length,
+      assigned: Object.keys(assignments[selectedDay] || {}).length,
     };
-  }, [schedule, dayCaps, warnings.length, seatAssignments, seats.length]);
+  }, [schedule, dayCaps, warnings.length, assignments, selectedDay, legacySeats.length]);
 
   const teamClass = React.useCallback((team: string) => {
     const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA"];
@@ -196,31 +265,40 @@ const SchedulePage = () => {
   }, []);
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+      <div className="p-6 space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Schedule Management</h1>
           <p className="text-muted-foreground mt-2">
-            Generate and optimize weekly schedules for hybrid work
+            Generate and optimize weekly schedules for hybrid work using persistent database storage
           </p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleReset} disabled={loading}>
-              <RotateCcw className="h-4 w-4 mr-2" />
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
               Reset
             </Button>
             <Button variant="secondary" onClick={handleSave}>
               <Save className="h-4 w-4 mr-2" />
               Save
             </Button>
-            <Button variant="outline" onClick={handleExport}>
+            <Button variant="outline" onClick={handleExport} disabled={!isDataLoaded}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Data Management Section */}
+      {!isDataLoaded && (
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <DataManager />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -312,13 +390,72 @@ const SchedulePage = () => {
             {/* Generate Schedule Button */}
             <Button 
               onClick={handleGenerateSchedule} 
-              disabled={loading}
+              disabled={loading || !isDataLoaded}
               variant="hero"
               className="w-full"
               size="lg"
             >
-              {loading ? "Generating..." : "Generate Weekly Schedule"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : !isDataLoaded ? (
+                "Load Data First"
+              ) : (
+                "Generate Weekly Schedule"
+              )}
             </Button>
+
+            {/* Assign Seats Button */}
+            {Object.values(schedule).some(day => day.length > 0) && (
+              <Button 
+                onClick={assignSeatsForDay} 
+                disabled={loading || !schedule[selectedDay]?.length}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Assigning...
+                  </>
+                ) : (
+                  `Assign Seats for ${selectedDay}`
+                )}
+              </Button>
+            )}
+
+            {/* Day Selection for Seat Assignment */}
+            {Object.values(schedule).some(day => day.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Select Day for Seat Assignment</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-5 gap-2">
+                    {DAYS.map(day => (
+                      <Button
+                        key={day}
+                        variant={selectedDay === day ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedDay(day)}
+                        disabled={!schedule[day]?.length}
+                        className="text-xs"
+                      >
+                        {day}
+                        {schedule[day]?.length ? (
+                          <Badge variant="secondary" className="ml-1 text-xs">
+                            {schedule[day].length}
+                          </Badge>
+                        ) : null}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 
