@@ -275,23 +275,6 @@ export function useScheduleData() {
     }
   };
 
-  // Load current week's schedule on mount
-  useEffect(() => {
-    const loadCurrentWeek = async () => {
-      const today = new Date();
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay() + 1); // Start of current week (Monday)
-      
-      try {
-        await loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
-      } catch (error) {
-        console.error('Failed to load current week schedule:', error);
-      }
-    };
-
-    loadCurrentWeek();
-  }, [loadScheduleForWeek]);
-
   const clearSchedule = () => {
     setSchedule({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] });
     setAssignments({ Mon: {}, Tue: {}, Wed: {}, Thu: {}, Fri: {} });
