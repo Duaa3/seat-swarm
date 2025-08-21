@@ -21,6 +21,7 @@ import {
   Weights
 } from "@/data/mock";
 import { assignSeats } from "@/lib/api";
+import { useScheduleData } from "@/hooks/useScheduleData";
 import { MapPin, Users, RefreshCw, Download, Settings, Eye } from "lucide-react";
 
 const SeatingMapPage = () => {
@@ -37,21 +38,28 @@ const SeatingMapPage = () => {
   const [loading, setLoading] = React.useState(false);
   const [meta, setMeta] = React.useState<any>(null);
   
-  // Realistic schedule with 60-80% office attendance per day (adjusted for 350 employees)
-  const [schedule] = React.useState<Record<DayKey, string[]>>(() => {
-    const getRandomEmployees = (count: number) => {
-      const shuffled = [...employees].sort(() => Math.random() - 0.5);
-      return shuffled.slice(0, count).map(e => e.employee_id);
-    };
-    
-    return {
-      Mon: getRandomEmployees(65), // 65 employees (66% of seats)
-      Tue: getRandomEmployees(72), // 72 employees (73% of seats) 
-      Wed: getRandomEmployees(58), // 58 employees (59% of seats)
-      Thu: getRandomEmployees(68), // 68 employees (69% of seats)
-      Fri: getRandomEmployees(45), // 45 employees (46% of seats) - lighter Friday
-    };
-  });
+  // Get real schedule data from the database
+  const { schedule: realSchedule, loading: scheduleLoading } = useScheduleData();
+  
+  // Use real schedule if available, otherwise fallback to mock
+  const schedule = React.useMemo(() => {
+    if (scheduleLoading || !realSchedule || Object.values(realSchedule).every(day => day.length === 0)) {
+      // Fallback to mock data
+      const getRandomEmployees = (count: number) => {
+        const shuffled = [...employees].sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, count).map(e => e.employee_id);
+      };
+      
+      return {
+        Mon: getRandomEmployees(65),
+        Tue: getRandomEmployees(72),
+        Wed: getRandomEmployees(58),
+        Thu: getRandomEmployees(68),
+        Fri: getRandomEmployees(45),
+      };
+    }
+    return realSchedule;
+  }, [realSchedule, scheduleLoading, employees]);
 
   const dayStats = React.useMemo(() => {
     const scheduled = schedule[selectedDay]?.length || 0;
