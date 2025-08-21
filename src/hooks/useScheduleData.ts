@@ -1,6 +1,6 @@
 // ============= Schedule and Assignment Data Hook =============
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Schedule, SeatAssignments, DayKey, Employee, Seat } from '@/types/planner';
 import { 
   getScheduleAssignments, 
@@ -214,7 +214,7 @@ export function useScheduleData() {
     }
   };
 
-  const loadScheduleForWeek = async (weekStartDate: string) => {
+  const loadScheduleForWeek = useCallback(async (weekStartDate: string) => {
     try {
       setLoading(true);
       
@@ -273,7 +273,7 @@ export function useScheduleData() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const clearSchedule = () => {
     setSchedule({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] });
