@@ -284,7 +284,10 @@ const SchedulePage = () => {
   }, []);
 
   return (
-      <div className="p-6 space-y-6 animate-fade-in bg-background">
+      <div className="p-6 space-y-6 animate-fade-in bg-red-500">
+      <div className="bg-yellow-400 p-4 text-black font-bold text-center">
+        ⚠️ THIS IS THE NEW UPDATED PAGE - IF YOU SEE THIS, THE UPDATE WORKED ⚠️
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">🔄 NEW Schedule Management</h1>
