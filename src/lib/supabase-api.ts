@@ -222,7 +222,10 @@ export async function bulkSaveScheduleAssignments(assignments: Array<{
 
   const { data, error } = await supabase
     .from('schedule_assignments')
-    .insert(formattedAssignments)
+    .upsert(formattedAssignments, { 
+      onConflict: 'employee_id,assignment_date',
+      ignoreDuplicates: false 
+    })
     .select();
     
   if (error) {
