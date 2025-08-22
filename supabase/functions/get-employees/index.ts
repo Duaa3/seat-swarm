@@ -152,25 +152,32 @@ function generateEmployees(count: number): Omit<Employee, 'id'>[] {
 }
 
 function generateName(): string {
-  const firstNames = [
-    "Alice", "Bob", "Charlie", "Diana", "Edward", "Fiona", "George", "Hannah",
-    "Ian", "Julia", "Kevin", "Laura", "Michael", "Nancy", "Oliver", "Patricia",
-    "Quincy", "Rachel", "Steven", "Teresa", "Ulrich", "Victoria", "William", "Xara",
-    "Yolanda", "Zachary", "Amelia", "Benjamin", "Catherine", "Daniel", "Emma", "Felix",
-    "Grace", "Henry", "Isabella", "Jack", "Katherine", "Liam", "Mia", "Noah",
-    "Olivia", "Peter", "Quinn", "Ruby", "Samuel", "Tiffany", "Uma", "Vincent"
+  const arabicFirstNames = [
+    "Ahmad", "Ali", "Omar", "Khalid", "Youssef", "Mohammed", "Hassan", "Mahmoud", "Saeed", "Amr",
+    "Fatma", "Aisha", "Nour", "Rana", "Layla", "Zainab", "Maryam", "Nadia", "Yasmin", "Rania",
+    "Hilal", "Farid", "Waleed", "Tariq", "Faris", "Badr", "Nabil", "Karim", "Adel", "Sami",
+    "Lina", "Dina", "Sara", "Hala", "Ghada", "Iman", "Leila", "Marwa", "Noha", "Reem",
+    "Hamza", "Mustafa", "Abdullah", "Ibrahim", "Ismail", "Bilal", "Rashid", "Hakim", "Jamal", "Ziad",
+    "Salma", "Amina", "Khadija", "Rawda", "Shaimaa", "Maysa", "Heba", "Dalia", "Hanan", "Widad",
+    "Bassam", "Ghassan", "Marwan", "Fadi", "Rami", "Osama", "Nasser", "Wael", "Sherif", "Tamer",
+    "Soha", "Mona", "Nora", "Hoda", "Rasha", "Ola", "Nesrine", "Riham", "Yara", "Malak",
+    "Faisal", "Majid", "Salim", "Ashraf", "Fouad", "Mazen", "Raed", "Samer", "Wessam", "Hazem",
+    "Hadeel", "Dena", "Lama", "Jana", "Tala", "Maya", "Laith", "Naya", "Jenna", "Salam"
   ];
   
-  const lastNames = [
-    "Anderson", "Brown", "Clark", "Davis", "Evans", "Fisher", "Garcia", "Harris",
-    "Johnson", "King", "Lee", "Miller", "Nelson", "Parker", "Roberts", "Smith",
-    "Taylor", "Williams", "Wilson", "Adams", "Baker", "Cooper", "Edwards", "Foster",
-    "Green", "Hall", "Jackson", "Lewis", "Martin", "Moore", "Thompson", "Turner",
-    "Walker", "White", "Young", "Allen", "Bell", "Carter", "Collins", "Cook"
+  const arabicLastNames = [
+    "Al-Ahmad", "Al-Ali", "Al-Omar", "Al-Khalil", "Al-Hassan", "Al-Hussein", "Al-Rashid", "Al-Nouri",
+    "Al-Zahra", "Al-Mansour", "Al-Khatib", "Al-Sharif", "Al-Masri", "Al-Shami", "Al-Iraqi", "Al-Hijazi",
+    "Abdallah", "Abdul-Rahman", "Abdul-Aziz", "Abdul-Majid", "Abdul-Latif", "Abdul-Karim", "Abdul-Wahab",
+    "Al-Sabah", "Al-Thani", "Al-Maktoum", "Al-Nahyan", "Al-Qasimi", "Al-Nuaimi", "Al-Otaibi", "Al-Dosari",
+    "Mansour", "Nashwan", "Ghanem", "Saleh", "Farouk", "Hamdan", "Obaid", "Rashid", "Saeed", "Sultan",
+    "Al-Mutairi", "Al-Harbi", "Al-Shehri", "Al-Ghamdi", "Al-Zahrani", "Al-Qureshi", "Al-Ansari", "Al-Hashimi",
+    "Khalifa", "Mohammed", "Youssef", "Ibrahim", "Ismail", "Hassan", "Hussein", "Mahmoud", "Ahmad", "Omar",
+    "Al-Farisi", "Al-Balushi", "Al-Lawati", "Al-Busaidi", "Al-Kindi", "Al-Ghafri", "Al-Jabri", "Al-Rawahi"
   ];
 
-  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-  const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+  const firstName = arabicFirstNames[Math.floor(Math.random() * arabicFirstNames.length)];
+  const lastName = arabicLastNames[Math.floor(Math.random() * arabicLastNames.length)];
   
   return `${firstName} ${lastName}`;
 }
