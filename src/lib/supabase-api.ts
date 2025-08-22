@@ -236,51 +236,6 @@ export async function bulkSaveScheduleAssignments(assignments: Array<{
   return data || [];
 }
 
-// ============= Analytics and Training Data =============
-
-export async function saveTrainingData(trainingData: {
-  employee_features: Record<string, any>;
-  seat_features: Record<string, any>;
-  context_features: Record<string, any>;
-  target_assignment: Record<string, any>;
-  data_source: string;
-  satisfaction_score?: number;
-  assignment_success?: boolean;
-  constraint_violations?: number;
-  model_version?: string;
-  training_batch?: string;
-}): Promise<void> {
-  const { error } = await supabase
-    .from('ai_training_data')
-    .insert(trainingData);
-    
-  if (error) {
-    console.error('Error saving training data:', error);
-    throw new Error(`Failed to save training data: ${error.message}`);
-  }
-}
-
-export async function saveModelPerformance(performance: {
-  model_type: string;
-  model_version: string;
-  assignment_date: string;
-  total_assignments: number;
-  successful_assignments?: number;
-  avg_satisfaction?: number;
-  avg_constraint_adherence?: number;
-  processing_time_ms?: number;
-  metrics?: Record<string, any>;
-}): Promise<void> {
-  const { error } = await supabase
-    .from('model_performance')
-    .insert(performance);
-    
-  if (error) {
-    console.error('Error saving model performance:', error);
-    throw new Error(`Failed to save model performance: ${error.message}`);
-  }
-}
-
 // ============= Data Transformation Functions =============
 
 function dbEmployeeToEmployee(dbEmployee: DbEmployee): Employee {
@@ -348,8 +303,6 @@ function seatToDbSeat(seat: Partial<Seat>): Partial<DbSeatInsert> {
 export async function clearAllData(): Promise<void> {
   // Clear in reverse order of dependencies
   await supabase.from('schedule_assignments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  await supabase.from('ai_training_data').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  await supabase.from('model_performance').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('team_collaborations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('employees').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('seats').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -359,19 +312,16 @@ export async function getDataStats(): Promise<{
   employees: number;
   seats: number;
   scheduleAssignments: number;
-  trainingRecords: number;
 }> {
-  const [employeesResult, seatsResult, assignmentsResult, trainingResult] = await Promise.all([
+  const [employeesResult, seatsResult, assignmentsResult] = await Promise.all([
     supabase.from('employees').select('id', { count: 'exact', head: true }),
     supabase.from('seats').select('id', { count: 'exact', head: true }),
-    supabase.from('schedule_assignments').select('id', { count: 'exact', head: true }),
-    supabase.from('ai_training_data').select('id', { count: 'exact', head: true })
+    supabase.from('schedule_assignments').select('id', { count: 'exact', head: true })
   ]);
   
   return {
     employees: employeesResult.count || 0,
     seats: seatsResult.count || 0,
-    scheduleAssignments: assignmentsResult.count || 0,
-    trainingRecords: trainingResult.count || 0
+    scheduleAssignments: assignmentsResult.count || 0
   };
 }

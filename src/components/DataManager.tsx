@@ -16,7 +16,7 @@ import { Users, MapPin, Calendar, Database, Loader2, AlertTriangle, Zap, Cloud }
 
 export function DataManager() {
   const { toast } = useToast();
-  const [stats, setStats] = React.useState({ employees: 0, seats: 0, scheduleAssignments: 0, trainingRecords: 0 });
+  const [stats, setStats] = React.useState({ employees: 0, seats: 0, scheduleAssignments: 0 });
   const [loadingStats, setLoadingStats] = React.useState(false);
   const [apiLoading, setApiLoading] = React.useState(false);
   const [clearingData, setClearingData] = React.useState(false);
@@ -222,7 +222,7 @@ export function DataManager() {
       </Card>
 
       {/* Database Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Employees</CardTitle>
@@ -264,21 +264,6 @@ export function DataManager() {
             </div>
             <Badge variant={stats.scheduleAssignments > 0 ? "default" : "secondary"} className="mt-2">
               {stats.scheduleAssignments > 0 ? "Recorded" : "None"}
-            </Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Training Data</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.trainingRecords}
-            </div>
-            <Badge variant={stats.trainingRecords > 0 ? "default" : "secondary"} className="mt-2">
-              {stats.trainingRecords > 0 ? "Available" : "None"}
             </Badge>
           </CardContent>
         </Card>
@@ -395,9 +380,9 @@ export function DataManager() {
               </Badge>
             </div>
             <div className="flex justify-between">
-              <span>Ready for AI Training:</span>
-              <Badge variant={stats.trainingRecords > 0 ? "default" : "secondary"}>
-                {stats.trainingRecords > 0 ? `${stats.trainingRecords} Records` : "Generate Schedules First"}
+              <span>System Ready:</span>
+              <Badge variant={stats.employees > 0 && stats.seats > 0 && stats.scheduleAssignments > 0 ? "default" : "secondary"}>
+                {stats.employees > 0 && stats.seats > 0 && stats.scheduleAssignments > 0 ? "Fully Operational" : "Setup Required"}
               </Badge>
             </div>
           </div>

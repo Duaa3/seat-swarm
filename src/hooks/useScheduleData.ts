@@ -4,9 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Schedule, SeatAssignments, DayKey, Employee, Seat } from '@/types/planner';
 import { 
   getScheduleAssignments, 
-  bulkSaveScheduleAssignments, 
-  saveTrainingData,
-  saveModelPerformance 
+  bulkSaveScheduleAssignments 
 } from '@/lib/supabase-api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -134,67 +132,6 @@ export function useScheduleData() {
       
       if (assignmentRecords.length > 0) {
         await bulkSaveScheduleAssignments(assignmentRecords);
-        
-        // Save training data for each assignment
-        for (const record of assignmentRecords) {
-          const employee = employees.find(e => e.employee_id === record.employee_id);
-          const seat = seats.find(s => s.seat_id === record.seat_id);
-          
-          if (employee && seat) {
-          await saveTrainingData({
-            employee_features: {
-              preferred_work_mode: employee.preferred_work_mode,
-              needs_accessible: employee.needs_accessible,
-              prefer_window: employee.prefer_window,
-              preferred_zone: employee.preferred_zone,
-              onsite_ratio: employee.onsite_ratio,
-              project_count: employee.project_count,
-              preferred_days: employee.preferred_days,
-              team: employee.team,
-              department: employee.department
-            },
-            seat_features: {
-              floor: seat.floor,
-              zone: seat.zone,
-              is_accessible: seat.is_accessible,
-              is_window: seat.is_window,
-              x_coordinate: seat.x,
-              y_coordinate: seat.y
-            },
-            context_features: {
-              assignment_day: day,
-              assignment_date: assignmentDate,
-              total_assignments: assignmentRecords.length
-            },
-            target_assignment: {
-              employee_id: record.employee_id,
-              seat_id: record.seat_id,
-              success: true
-            },
-            data_source: 'expert_labeled',
-            assignment_success: true,
-            satisfaction_score: 8, // Default satisfaction for manual assignments
-            model_version: modelVersion
-          });
-          }
-        }
-        
-        // Save model performance metrics
-        await saveModelPerformance({
-          model_type: 'heuristic',
-          model_version: modelVersion,
-          assignment_date: assignmentDate,
-          total_assignments: assignmentRecords.length,
-          successful_assignments: assignmentRecords.length,
-          avg_satisfaction: 0.8,
-          avg_constraint_adherence: 0.9,
-          processing_time_ms: 100,
-          metrics: {
-            assignment_method: 'manual',
-            day_of_week: day,
-            floor_distribution: {}
-          }
-        });
       }
       
       setAssignments(prev => ({
