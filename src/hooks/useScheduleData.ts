@@ -171,7 +171,7 @@ export function useScheduleData() {
               seat_id: record.seat_id,
               success: true
             },
-            data_source: 'user_assignment',
+            data_source: 'expert_labeled',
             assignment_success: true,
             satisfaction_score: 8, // Default satisfaction for manual assignments
             model_version: modelVersion
