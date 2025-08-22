@@ -90,7 +90,7 @@ export default function EmployeePortal() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-lg font-medium">{currentSeat.seat_id}</p>
+                <p className="text-lg font-medium">{currentSeat.id}</p>
                 <p className="text-sm text-muted-foreground">
                   Floor {currentSeat.floor} • {currentSeat.zone}
                 </p>

@@ -46,12 +46,12 @@ const AssignmentResults: React.FC<AssignmentResultsProps> = ({
 
   // Create lookup maps
   const employeeMap = React.useMemo(
-    () => new Map(employees.map(emp => [emp.employee_id, emp])),
+    () => new Map(employees.map(emp => [emp.id, emp])),
     [employees]
   );
   
   const seatMap = React.useMemo(
-    () => new Map(seats.map(seat => [seat.seat_id, seat])),
+    () => new Map(seats.map(seat => [seat.id, seat])),
     [seats]
   );
 

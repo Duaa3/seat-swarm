@@ -26,7 +26,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
 }) => {
   // Create lookup maps for efficiency
   const employeeMap = React.useMemo(
-    () => new Map(employees.map(emp => [emp.employee_id, emp])),
+    () => new Map(employees.map(emp => [emp.id, emp])),
     [employees]
   );
   
@@ -68,7 +68,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
 
   // Enhanced seat rendering with better visual feedback
   const renderSeat = (seat: Seat) => {
-    const assignment = assignmentMap.get(seat.seat_id);
+    const assignment = assignmentMap.get(seat.id);
     const employee = assignment ? employeeMap.get(assignment.employee_id) : null;
     
     const baseClasses = "relative w-14 h-14 rounded-xl border-2 cursor-pointer overflow-hidden";
@@ -86,7 +86,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
     const seatClasses = `${baseClasses} ${interactionClasses} ${teamClasses} ${specialClasses}`;
 
     return (
-      <Tooltip key={seat.seat_id}>
+      <Tooltip key={seat.id}>
         <TooltipTrigger asChild>
           <div
             className={seatClasses}
@@ -99,7 +99,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
             {/* Seat ID Badge */}
             {showLabels && (
               <div className="absolute -top-1 -left-1 bg-background/90 text-foreground text-[8px] font-mono px-1 py-0.5 rounded border">
-                {seat.seat_id.split('-')[1]}
+                {seat.id.split('-')[1]}
               </div>
             )}
             
@@ -148,7 +148,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs">
           <div className="space-y-1">
-            <div className="font-semibold">{seat.seat_id}</div>
+            <div className="font-semibold">{seat.id}</div>
             <div className="text-sm">Zone: {seat.zone}</div>
             <div className="text-xs flex gap-2">
               {seat.is_window && <Badge variant="secondary" className="text-xs">Window</Badge>}
@@ -172,10 +172,10 @@ const SeatMap: React.FC<SeatMapProps> = ({
   // Enhanced floor rendering with better organization and stats
   const renderFloor = (floor: number, floorSeats: Seat[]) => {
     const { cols, rows } = getGridDimensions(floorSeats);
-    const assignedCount = floorSeats.filter(s => assignmentMap.has(s.seat_id)).length;
+    const assignedCount = floorSeats.filter(s => assignmentMap.has(s.id)).length;
     const utilization = Math.round((assignedCount / floorSeats.length) * 100);
     const averageScore = floorSeats
-      .map(s => assignmentMap.get(s.seat_id)?.score)
+      .map(s => assignmentMap.get(s.id)?.score)
       .filter(Boolean)
       .reduce((sum, score, _, arr) => sum + (score || 0) / arr.length, 0);
     
@@ -241,7 +241,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
               <div className="flex flex-wrap gap-2 text-xs">
                 {["ZoneA", "ZoneB", "ZoneC"].map(zone => {
                   const zoneSeats = floorSeats.filter(s => s.zone === zone);
-                  const zoneAssigned = zoneSeats.filter(s => assignmentMap.has(s.seat_id)).length;
+                  const zoneAssigned = zoneSeats.filter(s => assignmentMap.has(s.id)).length;
                   return (
                     <Badge key={zone} variant="outline" className="text-xs">
                       {zone}: {zoneAssigned}/{zoneSeats.length}
@@ -287,7 +287,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
           <div className="grid grid-cols-3 gap-4">
             {["ZoneA", "ZoneB", "ZoneC"].map(zone => {
               const zoneSeats = seats.filter(s => s.zone === zone);
-              const zoneAssigned = zoneSeats.filter(s => assignmentMap.has(s.seat_id)).length;
+              const zoneAssigned = zoneSeats.filter(s => assignmentMap.has(s.id)).length;
               return (
                 <div key={zone} className="text-center">
                   <div className="text-lg font-semibold">{zoneAssigned}/{zoneSeats.length}</div>

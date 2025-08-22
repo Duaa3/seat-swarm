@@ -72,11 +72,11 @@ const SeatingMapPage = () => {
     
     // Floor distribution for assigned seats
     const floor1Assignments = dayAssignments.filter(assignment => {
-      const seat = dbSeats.find(s => s.seat_id === assignment.seat_id);
+      const seat = dbSeats.find(s => s.id === assignment.seat_id);
       return seat?.floor === 1;
     });
     const floor2Assignments = dayAssignments.filter(assignment => {
-      const seat = dbSeats.find(s => s.seat_id === assignment.seat_id);
+      const seat = dbSeats.find(s => s.id === assignment.seat_id);
       return seat?.floor === 2;
     });
     
@@ -120,7 +120,7 @@ const SeatingMapPage = () => {
       
       const assignmentRequest = {
         employees: dayEmployees.map(empId => {
-          const emp = dbEmployees.find(e => e.employee_id === empId);
+          const emp = dbEmployees.find(e => e.id === empId);
           return emp ? toSupabaseEmployee(emp) : null;
         }).filter(Boolean),
         seats: dbSeats.map(seat => toSupabaseSeat(seat)),
@@ -197,8 +197,8 @@ const SeatingMapPage = () => {
     const csvRows = ['Employee ID,Full Name,Team,Department,Seat ID'];
     
     dayAssignments.forEach(assignment => {
-      const employee = dbEmployees.find(e => e.employee_id === assignment.employee_id);
-      const seat = dbSeats.find(s => s.seat_id === assignment.seat_id);
+      const employee = dbEmployees.find(e => e.id === assignment.employee_id);
+      const seat = dbSeats.find(s => s.id === assignment.seat_id);
       
       csvRows.push([
         assignment.employee_id,

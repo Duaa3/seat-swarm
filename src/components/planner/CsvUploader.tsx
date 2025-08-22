@@ -64,11 +64,11 @@ const CsvUploader: React.FC<CsvUploaderProps> = ({
         const preferredDays = getValue('preferred_days') || getValue('days');
         
         return {
-          employee_id: getValue('employee_id') || getValue('id') || `E${(index + 1).toString().padStart(3, '0')}`,
+          id: getValue('employee_id') || getValue('id') || `E${(index + 1).toString().padStart(3, '0')}`,
           full_name: getValue('full_name') || getValue('name') || `Employee ${index + 1}`,
           team: getValue('team') || 'Unknown',
           department: getValue('department') || getValue('dept') || 'Unknown',
-          preferred_work_mode: (getValue('preferred_work_mode') || getValue('work_mode') || 'hybrid') as "hybrid" | "remote" | "office",
+          preferred_work_mode: (getValue('preferred_work_mode') || getValue('work_mode') || 'hybrid') as "hybrid" | "remote" | "onsite",
           needs_accessible: getValue('needs_accessible').toLowerCase() === 'true',
           prefer_window: getValue('prefer_window').toLowerCase() === 'true',
           preferred_zone: getValue('preferred_zone') || getValue('zone') || 'ZoneA',
@@ -96,7 +96,7 @@ const CsvUploader: React.FC<CsvUploaderProps> = ({
         };
         
         return {
-          seat_id: getValue('seat_id') || getValue('id') || `S${index + 1}`,
+          id: getValue('seat_id') || getValue('id') || `S${index + 1}`,
           floor: parseInt(getValue('floor')) || 1,
           zone: getValue('zone') || 'ZoneA',
           is_accessible: getValue('is_accessible').toLowerCase() === 'true',

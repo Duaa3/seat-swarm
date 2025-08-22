@@ -67,7 +67,7 @@ function mockAssignSeats(payload: AssignSeatsPayload): AssignSeatsResponse {
     const employee = employees[i];
     const seat = seats[i];
     
-    if (usedSeats.has(seat.seat_id)) continue;
+    if (usedSeats.has(seat.id)) continue;
     
     // Calculate mock score based on preferences
     let score = 2.0; // base score
@@ -91,23 +91,23 @@ function mockAssignSeats(payload: AssignSeatsPayload): AssignSeatsResponse {
     );
     
     assignments.push({
-      employee_id: employee.employee_id,
-      seat_id: seat.seat_id,
+      employee_id: employee.id,
+      seat_id: seat.id,
       score: Number(score.toFixed(2)),
       reasons,
     });
     
-    usedSeats.add(seat.seat_id);
+    usedSeats.add(seat.id);
   }
   
   // Add unassigned employees
   for (let i = assignments.length; i < employees.length; i++) {
-    unassigned.push(employees[i].employee_id);
+    unassigned.push(employees[i].id);
   }
   
   const unusedSeats = seats
-    .filter(s => !usedSeats.has(s.seat_id))
-    .map(s => s.seat_id);
+    .filter(s => !usedSeats.has(s.id))
+    .map(s => s.id);
   
   return {
     assignments,
@@ -140,12 +140,12 @@ function mockGenerateSchedule(payload: SchedulePayload): ScheduleResponse {
     schedule[day] = employees
       .filter(emp => emp.preferred_days.includes(day))
       .slice(0, maxSeats)
-      .map(emp => emp.employee_id);
+      .map(emp => emp.id);
     
     // Check for violations
     const deptCounts: Record<string, number> = {};
     schedule[day].forEach(empId => {
-      const emp = employees.find(e => e.employee_id === empId);
+      const emp = employees.find(e => e.id === empId);
       if (emp) {
         deptCounts[emp.department] = (deptCounts[emp.department] || 0) + 1;
       }
