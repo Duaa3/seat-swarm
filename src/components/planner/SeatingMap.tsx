@@ -63,52 +63,44 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
     });
 
     const floorTitle = floor === 1 ? "Main workspace" : "Executive & meetings";
-    const occupancyPercent = floorSeats.length > 0 ? Math.round((assignedSeats.length / floorSeats.length) * 100) : 0;
+    const totalSeats = floorSeats.length;
+    const occupancyPercent = totalSeats > 0 ? Math.round((assignedSeats.length / totalSeats) * 100) : 0;
 
-    // Arrange seats in rows for the layout
-    const seatsPerRow = 8;
-    const rows = [];
+    // Create a grid of seats (10 seats per row for better layout)
+    const seatsPerRow = 10;
+    const seatGrid = [];
     for (let i = 0; i < floorSeats.length; i += seatsPerRow) {
-      rows.push(floorSeats.slice(i, i + seatsPerRow));
+      seatGrid.push(floorSeats.slice(i, i + seatsPerRow));
     }
 
-    // Group rows into zones
-    const getRowZone = (rowIndex: number): string => {
-      if (rowIndex < 2) return 'ZoneA';
-      if (rowIndex < 4) return 'ZoneB';
-      return 'ZoneC';
-    };
-
-    const zoneRows = [
-      { zone: 'ZoneA', rows: rows.slice(0, 2) },
-      { zone: 'ZoneB', rows: rows.slice(2, 4) },
-      { zone: 'ZoneC', rows: rows.slice(4) }
-    ].filter(zone => zone.rows.length > 0);
-
     return (
-      <div key={floor} className="bg-gray-50 rounded-xl p-6 space-y-4">
+      <div key={floor} className="bg-white rounded-2xl border border-gray-200 shadow-sm">
         {/* Floor Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <span className="text-purple-600 font-bold text-lg">🏢</span>
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
+                <span className="text-violet-600 font-bold text-lg">🏢</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Floor {floor}</h3>
+                <p className="text-sm text-gray-500">{floorTitle}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Floor {floor}</h3>
-              <p className="text-sm text-gray-600">{floorTitle}</p>
+            <div className="text-right">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="text-lg font-bold text-gray-900">👥 {assignedSeats.length}/{totalSeats}</span>
+              </div>
+              <p className="text-xs text-gray-500">{occupancyPercent}% occupied</p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold">👥 {assignedSeats.length}/{floorSeats.length}</span>
-            <span className="text-sm text-gray-600">{occupancyPercent}% occupied</span>
           </div>
         </div>
 
-        {/* Seating Layout */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="space-y-3">
-            {rows.map((row, rowIndex) => (
-              <div key={rowIndex} className="flex justify-center gap-3">
+        {/* Seating Grid */}
+        <div className="p-6">
+          <div className="space-y-4">
+            {seatGrid.map((row, rowIndex) => (
+              <div key={rowIndex} className="flex justify-center gap-3 flex-wrap">
                 {row.map((seat) => {
                   const empId = Object.keys(assignments || {}).find((eid) => assignments[eid] === seat.id);
                   const emp = empId ? empById[empId] : null;
@@ -117,39 +109,37 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
                   const isAccessible = accessibleSeats.includes(seat);
                   const zone = getZoneForSeat(seat.id, floor);
                   
-                  const getZoneBg = (zone: string): string => {
-                    switch (zone) {
-                      case 'ZoneA': return 'bg-teal-50';
-                      case 'ZoneB': return 'bg-gray-50';
-                      case 'ZoneC': return 'bg-yellow-50';
-                      default: return 'bg-gray-50';
-                    }
-                  };
-                  
                   return (
-                    <div key={seat.id} className={`relative flex flex-col items-center p-2 rounded-lg ${getZoneBg(zone)}`}>
-                      <div className="text-xs text-gray-500 mb-1 font-medium">
-                        S{seatNum.toString().padStart(2, '0')}
+                    <div key={seat.id} className="relative">
+                      <div className="text-center mb-1">
+                        <span className="text-xs font-medium text-gray-400">
+                          S{seatNum.toString().padStart(2, '0')}
+                        </span>
                       </div>
                       <div
-                        className={`w-14 h-14 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-xs font-medium transition-all hover:scale-105 relative ${
+                        className={`relative w-16 h-16 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center font-bold text-sm transition-all hover:scale-105 cursor-pointer ${
                           emp 
-                            ? `${teamColor(emp.team)} text-white border-solid shadow-lg` 
-                            : "bg-white hover:bg-gray-100"
+                            ? `${teamColor(emp.team)} text-white border-solid shadow-lg transform hover:shadow-xl` 
+                            : "bg-gray-50 hover:bg-gray-100 hover:border-gray-400"
                         }`}
                         title={emp ? `${emp.name} (${emp.team}) - ${zone}` : `Available - ${zone}`}
                       >
                         {emp ? emp.name.charAt(0).toUpperCase() : ''}
                         
                         {/* Feature indicators */}
-                        <div className="absolute -top-1 -right-1 flex flex-col gap-1">
+                        <div className="absolute -top-1.5 -right-1.5 flex flex-col gap-1">
                           {isWindow && (
-                            <div className="w-3 h-3 bg-yellow-400 rounded-full border border-white" title="Window seat" />
+                            <div className="w-4 h-4 bg-yellow-400 rounded-full border-2 border-white shadow-sm" title="Window seat" />
                           )}
                           {isAccessible && (
-                            <div className="w-3 h-3 bg-teal-500 rounded-full border border-white" title="Accessible seat" />
+                            <div className="w-4 h-4 bg-emerald-500 rounded-full border-2 border-white shadow-sm" title="Accessible seat" />
                           )}
                         </div>
+                      </div>
+                      
+                      {/* Zone indicator */}
+                      <div className="text-center mt-1">
+                        <span className="text-xs text-gray-400">{zone}</span>
                       </div>
                     </div>
                   );
@@ -160,41 +150,53 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
         </div>
 
         {/* Floor Statistics */}
-        <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-200">
-          <div>
-            <h4 className="font-semibold text-sm mb-2 text-gray-700">FEATURES</h4>
-            <div className="space-y-1 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-yellow-400 rounded-full" />
-                <span>Window ({windowSeats.length})</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-teal-500 rounded-full" />
-                <span>Accessible ({accessibleSeats.length})</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-gray-300 rounded-full" />
-                <span>Available ({floorSeats.length - assignedSeats.length})</span>
+        <div className="px-6 pb-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold text-sm mb-3 text-gray-700 uppercase tracking-wide">Features</h4>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-4 h-4 bg-yellow-400 rounded-full" />
+                    <span>Window</span>
+                  </div>
+                  <span className="text-sm font-medium">{windowSeats.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-4 h-4 bg-emerald-500 rounded-full" />
+                    <span>Accessible</span>
+                  </div>
+                  <span className="text-sm font-medium">{accessibleSeats.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-4 h-4 bg-gray-300 rounded-full" />
+                    <span>Available</span>
+                  </div>
+                  <span className="text-sm font-medium">{totalSeats - assignedSeats.length}</span>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div>
-            <h4 className="font-semibold text-sm mb-2 text-gray-700">ZONES</h4>
-            <div className="space-y-1 text-sm">
-              {['ZoneA', 'ZoneB', 'ZoneC'].map((zone) => {
-                const zoneSeats = floorSeats.filter(seat => getZoneForSeat(seat.id, floor) === zone);
-                const zoneAssigned = assignedSeats.filter(([, seatId]) => {
-                  const seat = seats.find(s => s.id === seatId);
-                  return seat && getZoneForSeat(seat.id, floor) === zone;
-                }).length;
-                
-                return (
-                  <div key={zone}>
-                    {zone}: {zoneAssigned}/{zoneSeats.length}
-                  </div>
-                );
-              })}
+            
+            <div>
+              <h4 className="font-semibold text-sm mb-3 text-gray-700 uppercase tracking-wide">Zones</h4>
+              <div className="space-y-2">
+                {['ZoneA', 'ZoneB', 'ZoneC'].map((zone) => {
+                  const zoneSeats = floorSeats.filter(seat => getZoneForSeat(seat.id, floor) === zone);
+                  const zoneAssigned = assignedSeats.filter(([, seatId]) => {
+                    const seat = seats.find(s => s.id === seatId);
+                    return seat && getZoneForSeat(seat.id, floor) === zone;
+                  }).length;
+                  
+                  return (
+                    <div key={zone} className="flex items-center justify-between text-sm">
+                      <span>{zone}</span>
+                      <span className="font-medium">{zoneAssigned}/{zoneSeats.length}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -212,21 +214,9 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
       </div>
       
       {floors.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <div className="text-muted-foreground">No seating data available</div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : Object.keys(assignments || {}).length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <div className="text-muted-foreground">No seat assignments for {day}</div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="text-center py-8 text-muted-foreground">
+          No seating data available
+        </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
           {floors.map(renderFloor)}
