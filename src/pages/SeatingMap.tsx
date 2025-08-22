@@ -117,25 +117,40 @@ const SeatingMapPage = () => {
       
       // Simple assignment logic - assign seats in order
       const dayAssign: Record<string, string> = {};
-      const availableSeats = legacySeats.map(s => s.id);
+      const availableSeats = dbSeats.map(s => s.seat_id);
       
-      for (let i = 0; i < dayEmployees.length && i < availableSeats.length; i++) {
-        dayAssign[dayEmployees[i]] = availableSeats[i];
+      // Only assign up to the number of available seats
+      const employeesToAssign = dayEmployees.slice(0, availableSeats.length);
+      
+      for (let i = 0; i < employeesToAssign.length; i++) {
+        dayAssign[employeesToAssign[i]] = availableSeats[i];
       }
 
-      // Save assignments to database
+      // Calculate the assignment date correctly
       const today = new Date();
       const dayIndex = DAYS.indexOf(selectedDay);
-      const assignmentDate = new Date(today);
-      assignmentDate.setDate(today.getDate() - today.getDay() + 1 + dayIndex);
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday of current week
+      const assignmentDate = new Date(startOfWeek);
+      assignmentDate.setDate(startOfWeek.getDate() + dayIndex);
 
-      await saveSeatAssignments(dayAssign, selectedDay, dbSeats, dbEmployees, assignmentDate.toISOString().split('T')[0]);
+      await saveSeatAssignments(
+        dayAssign, 
+        selectedDay, 
+        dbSeats, 
+        dbEmployees, 
+        assignmentDate.toISOString().split('T')[0]
+      );
+
+      // Refresh data to show updated assignments
+      await loadScheduleForWeek(startOfWeek.toISOString().split('T')[0]);
 
       toast({
-        title: "Seats assigned and saved",
+        title: "Seats assigned successfully",
         description: `Assigned ${Object.keys(dayAssign).length} seats for ${selectedDay}.`,
       });
     } catch (error) {
+      console.error('Seat assignment error:', error);
       toast({
         title: "Error assigning seats",
         description: error instanceof Error ? error.message : "Unknown error occurred",
