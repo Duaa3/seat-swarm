@@ -41,19 +41,34 @@ const Analytics = () => {
   const allTeams = React.useMemo(() => [...new Set(employees.map(emp => emp.team))], [employees]);
   const allDepts = React.useMemo(() => [...new Set(employees.map(emp => emp.department))], [employees]);
 
-  const loading = employeesLoading || seatsLoading || analyticsLoading || aiLoading;
+  const loading = employeesLoading || seatsLoading || analyticsLoading;
   const hasData = employees.length > 0 && seats.length > 0;
+
+  console.log('Analytics component state:', {
+    employeesCount: employees.length,
+    seatsCount: seats.length,
+    assignmentsCount: assignments.length,
+    hasData,
+    loading,
+    aiError,
+    systemHealth,
+    isMonitoring
+  });
 
   // All effects
   React.useEffect(() => {
     const loadAnalyticsData = async () => {
+      console.log('loadAnalyticsData called', { hasData, employeesLoading, seatsLoading });
+      
       if (!hasData) {
+        console.log('No data available, skipping analytics load');
         setAnalyticsLoading(false);
         return;
       }
 
       try {
         setAnalyticsLoading(true);
+        console.log('Loading assignment data...');
         
         // Get assignments from the last 30 days
         const endDate = new Date().toISOString().split('T')[0];
@@ -63,14 +78,17 @@ const Analytics = () => {
         console.log('Loaded assignment data:', assignmentData);
         setAssignments(assignmentData);
         
-        // Load AI analytics
-        await fetchAnalytics(selectedPeriod);
+        // Only try to load AI analytics if we have basic data
+        if (employees.length > 0 && seats.length > 0) {
+          console.log('Loading AI analytics...');
+          await fetchAnalytics(selectedPeriod);
+        }
         
       } catch (error) {
         console.error('Error loading analytics data:', error);
         toast({
           title: "Error loading analytics",
-          description: "Failed to load assignment data",
+          description: "Failed to load assignment data. Basic analytics will still be available.",
           variant: "destructive"
         });
       } finally {
@@ -78,21 +96,25 @@ const Analytics = () => {
       }
     };
 
-    loadAnalyticsData();
-  }, [hasData, selectedPeriod, fetchAnalytics]);
+    // Add a small delay to ensure data is loaded
+    const timer = setTimeout(loadAnalyticsData, 100);
+    return () => clearTimeout(timer);
+  }, [hasData, selectedPeriod, fetchAnalytics, employees.length, seats.length]);
 
-  // Start real-time monitoring when component mounts and data is available
+  // Start real-time monitoring when component mounts and data is available  
   React.useEffect(() => {
-    if (hasData && !isMonitoring) {
+    if (hasData && !isMonitoring && !aiLoading) {
+      console.log('Starting real-time monitoring...');
       const cleanup = startMonitoring();
       return cleanup;
     }
     return () => {
       if (isMonitoring) {
+        console.log('Stopping real-time monitoring...');
         stopMonitoring();
       }
     };
-  }, [hasData, isMonitoring, startMonitoring, stopMonitoring]);
+  }, [hasData, isMonitoring, startMonitoring, stopMonitoring, aiLoading]);
 
   // All computed stats using useMemo
   const stats = React.useMemo(() => {
@@ -217,6 +239,11 @@ const Analytics = () => {
           <div className="text-center space-y-4">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="text-muted-foreground">Loading analytics data...</p>
+            <div className="text-xs text-muted-foreground">
+              {employeesLoading && <div>Loading employees...</div>}
+              {seatsLoading && <div>Loading seats...</div>}
+              {analyticsLoading && <div>Loading analytics...</div>}
+            </div>
           </div>
         </div>
       </div>
@@ -228,9 +255,12 @@ const Analytics = () => {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Analytics & Insights</h1>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              <Brain className="h-8 w-8 text-primary" />
+              AI-Powered Analytics
+            </h1>
             <p className="text-muted-foreground mt-2">
-              Monitor utilization patterns and optimize space allocation
+              Real-time intelligent insights with custom AI algorithms and rule-based optimization
             </p>
           </div>
         </div>
@@ -244,6 +274,11 @@ const Analytics = () => {
                 <p className="text-muted-foreground">
                   Please load employee and seat data to view analytics.
                 </p>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  <div>Employees: {employees.length}</div>
+                  <div>Seats: {seats.length}</div>
+                  {aiError && <div className="text-red-500">AI Error: {aiError}</div>}
+                </div>
               </div>
               <Button asChild>
                 <Link to="/">Load Data</Link>
@@ -298,6 +333,25 @@ const Analytics = () => {
           </Button>
         </div>
       </div>
+
+      {/* Show error state if AI analytics failed but basic data is available */}
+      {aiError && (
+        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-800">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <div>
+                <h3 className="font-semibold text-yellow-900 dark:text-yellow-200">
+                  AI Analytics Unavailable
+                </h3>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                  {aiError} - Showing basic analytics instead.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Critical Alerts Banner */}
       {criticalAlerts.length > 0 && (
@@ -564,57 +618,54 @@ const Analytics = () => {
         </>
       )}
 
-      {/* Legacy Analytics (fallback when AI data not available) */}
-      {(!analyticsData || !realTimeMetrics) && stats && (
-        <>
-          {/* Key Metrics */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card className="hover:shadow-glow transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-                <Users className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalEmployees}</div>
-                <p className="text-xs text-muted-foreground">Active workforce</p>
-              </CardContent>
-            </Card>
+      {/* Basic Analytics - Always Available */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="hover:shadow-glow transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+            <Users className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{employees.length}</div>
+            <p className="text-xs text-muted-foreground">Active workforce</p>
+          </CardContent>
+        </Card>
 
-            <Card className="hover:shadow-glow transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Available Seats</CardTitle>
-                <MapPin className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalSeats}</div>
-                <p className="text-xs text-muted-foreground">Office capacity</p>
-              </CardContent>
-            </Card>
+        <Card className="hover:shadow-glow transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Available Seats</CardTitle>
+            <MapPin className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{seats.length}</div>
+            <p className="text-xs text-muted-foreground">Office capacity</p>
+          </CardContent>
+        </Card>
 
-            <Card className="hover:shadow-glow transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Avg Occupancy</CardTitle>
-                <TrendingUp className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{Math.round(stats.analyticsData.avgOccupancy)}%</div>
-                <p className="text-xs text-muted-foreground">Space utilization</p>
-              </CardContent>
-            </Card>
+        <Card className="hover:shadow-glow transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Assignments</CardTitle>
+            <Calendar className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{assignments.length}</div>
+            <p className="text-xs text-muted-foreground">Total recorded</p>
+          </CardContent>
+        </Card>
 
-            <Card className="hover:shadow-glow transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Assignments</CardTitle>
-                <Calendar className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{assignments.length}</div>
-                <p className="text-xs text-muted-foreground">Total recorded</p>
-              </CardContent>
-            </Card>
-          </div>
-        </>
-      )}
+        <Card className="hover:shadow-glow transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">System Status</CardTitle>
+            <Activity className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold capitalize">{systemHealth || 'Basic'}</div>
+            <p className="text-xs text-muted-foreground">
+              {isMonitoring ? '🟢 Live monitoring' : '⚪ Basic mode'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Team Utilization */}
       <Card>
@@ -713,6 +764,67 @@ const Analytics = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Basic Team Analysis */}
+      {allTeams.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              Team Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              {allTeams.map((team) => {
+                const teamEmployees = employees.filter(e => e.team === team);
+                return (
+                  <div key={team} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline">
+                        {team}
+                      </Badge>
+                      <div>
+                        <p className="font-medium">{teamEmployees.length} employees</p>
+                        <p className="text-sm text-muted-foreground">
+                          Active team
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Basic Department Analysis */}
+      {allDepts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Department Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              {allDepts.map((dept) => {
+                const deptEmployees = employees.filter(e => e.department === dept);
+                return (
+                  <div key={dept} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold">{dept}</h3>
+                      <Badge variant="secondary">{deptEmployees.length} people</Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Smart Recommendations */}
       <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
