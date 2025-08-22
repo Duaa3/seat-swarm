@@ -3,15 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  fetchEmployees, 
-  generateEmployees, 
-  fetchSeats, 
-  generateSeats,
-  generateScheduleAPI,
-  checkApiHealth 
-} from '@/lib/api-client';
-import { clearAllData, getDataStats } from '@/lib/supabase-api';
+import { clearAllData, getDataStats, bulkCreateEmployees, bulkCreateSeats } from '@/lib/supabase-api';
+import { MOCK_EMPLOYEES, MOCK_SEATS } from '@/data/mock';
 import { Users, MapPin, Calendar, Database, Loader2, AlertTriangle, Zap, Cloud } from 'lucide-react';
 
 export function DataManager() {
@@ -20,17 +13,11 @@ export function DataManager() {
   const [loadingStats, setLoadingStats] = React.useState(false);
   const [apiLoading, setApiLoading] = React.useState(false);
   const [clearingData, setClearingData] = React.useState(false);
-  const [apiHealth, setApiHealth] = React.useState({ employees: false, seats: false, schedule: false });
-
   const fetchStats = async () => {
     try {
       setLoadingStats(true);
-      const [newStats, healthCheck] = await Promise.all([
-        getDataStats(),
-        checkApiHealth()
-      ]);
+      const newStats = await getDataStats();
       setStats(newStats);
-      setApiHealth(healthCheck);
     } catch (error) {
       toast({
         title: "Error",
@@ -42,25 +29,21 @@ export function DataManager() {
     }
   };
 
-  const loadEmployeesFromApi = async () => {
+  const loadEmployeesFromDatabase = async () => {
     try {
       setApiLoading(true);
       
-      const result = await generateEmployees(350);
+      const employees = await bulkCreateEmployees(MOCK_EMPLOYEES);
       
-      if (result.success && result.data) {
-        toast({
-          title: "Success",
-          description: `Generated ${result.data.count} employees via API`,
-        });
-        await fetchStats(); // Refresh stats
-      } else {
-        throw new Error(result.error || 'Unknown API error');
-      }
+      toast({
+        title: "Success",
+        description: `Created ${employees.length} employees in database`,
+      });
+      await fetchStats(); // Refresh stats
     } catch (error) {
       toast({
-        title: "API Error",
-        description: error instanceof Error ? error.message : "Failed to generate employees",
+        title: "Database Error",
+        description: error instanceof Error ? error.message : "Failed to create employees",
         variant: "destructive"
       });
     } finally {
@@ -68,25 +51,21 @@ export function DataManager() {
     }
   };
 
-  const loadSeatsFromApi = async () => {
+  const loadSeatsFromDatabase = async () => {
     try {
       setApiLoading(true);
       
-      const result = await generateSeats(2, 50); // 2 floors, 50 seats each
+      const seats = await bulkCreateSeats(MOCK_SEATS);
       
-      if (result.success && result.data) {
-        toast({
-          title: "Success", 
-          description: `Generated ${result.data.count} seats via API`,
-        });
-        await fetchStats(); // Refresh stats
-      } else {
-        throw new Error(result.error || 'Unknown API error');
-      }
+      toast({
+        title: "Success", 
+        description: `Created ${seats.length} seats in database`,
+      });
+      await fetchStats(); // Refresh stats
     } catch (error) {
       toast({
-        title: "API Error",
-        description: error instanceof Error ? error.message : "Failed to generate seats",
+        title: "Database Error",
+        description: error instanceof Error ? error.message : "Failed to create seats",
         variant: "destructive"
       });
     } finally {
@@ -94,29 +73,25 @@ export function DataManager() {
     }
   };
 
-  const generateScheduleFromApi = async () => {
+  const generateSampleData = async () => {
     try {
       setApiLoading(true);
       
-      const result = await generateScheduleAPI({
-        dayCapacities: { Mon: 90, Tue: 90, Wed: 90, Thu: 90, Fri: 90 },
-        deptCapacity: 60,
-        teamClusters: []
-      });
+      // Create both employees and seats
+      const [employees, seats] = await Promise.all([
+        bulkCreateEmployees(MOCK_EMPLOYEES),
+        bulkCreateSeats(MOCK_SEATS)
+      ]);
       
-      if (result.success && result.data) {
-        toast({
-          title: "Schedule Generated",
-          description: `Created ${result.data.assignments} assignments for week starting ${result.data.weekStartDate}`,
-        });
-        await fetchStats(); // Refresh stats
-      } else {
-        throw new Error(result.error || 'Unknown API error');
-      }
+      toast({
+        title: "Sample Data Created",
+        description: `Created ${employees.length} employees and ${seats.length} seats`,
+      });
+      await fetchStats(); // Refresh stats
     } catch (error) {
       toast({
-        title: "API Error",
-        description: error instanceof Error ? error.message : "Failed to generate schedule",
+        title: "Database Error",
+        description: error instanceof Error ? error.message : "Failed to create sample data",
         variant: "destructive"
       });
     } finally {
@@ -124,33 +99,25 @@ export function DataManager() {
     }
   };
 
-  const loadAllDataFromApi = async () => {
+  const loadAllDataFromDatabase = async () => {
     try {
       setApiLoading(true);
       
       // Load employees and seats in parallel
-      const [employeesResult, seatsResult] = await Promise.all([
-        generateEmployees(350),
-        generateSeats(2, 50)
+      const [employees, seats] = await Promise.all([
+        bulkCreateEmployees(MOCK_EMPLOYEES),
+        bulkCreateSeats(MOCK_SEATS)
       ]);
       
-      let successCount = 0;
-      if (employeesResult.success) successCount++;
-      if (seatsResult.success) successCount++;
-      
-      if (successCount > 0) {
-        toast({
-          title: "API Data Loaded",
-          description: `Successfully loaded ${successCount}/2 datasets from API`,
-        });
-        await fetchStats(); // Refresh stats
-      } else {
-        throw new Error('All API calls failed');
-      }
+      toast({
+        title: "Database Populated",
+        description: `Created ${employees.length} employees and ${seats.length} seats`,
+      });
+      await fetchStats(); // Refresh stats
     } catch (error) {
       toast({
-        title: "API Error",
-        description: "Failed to load data from APIs",
+        title: "Database Error",
+        description: "Failed to populate database",
         variant: "destructive"
       });
     } finally {
@@ -188,38 +155,9 @@ export function DataManager() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">API-Driven Data Management</h2>
-        <p className="text-muted-foreground">Load data automatically through intelligent APIs</p>
+        <h2 className="text-2xl font-bold tracking-tight">Database Management</h2>
+        <p className="text-muted-foreground">Manage data directly in the Supabase database</p>
       </div>
-
-      {/* API Health Status */}
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Cloud className="h-5 w-5" />
-            API Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <Badge variant={apiHealth.employees ? "default" : "secondary"}>
-                Employees API {apiHealth.employees ? "✓" : "?"}
-              </Badge>
-            </div>
-            <div className="text-center">
-              <Badge variant={apiHealth.seats ? "default" : "secondary"}>
-                Seats API {apiHealth.seats ? "✓" : "?"}
-              </Badge>
-            </div>
-            <div className="text-center">
-              <Badge variant={apiHealth.schedule ? "default" : "secondary"}>
-                Schedule API {apiHealth.schedule ? "✓" : "?"}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Database Stats */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -269,65 +207,65 @@ export function DataManager() {
         </Card>
       </div>
 
-      {/* API Actions */}
+      {/* Database Actions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-blue-500" />
+              <Database className="h-5 w-5 text-blue-500" />
               Quick Setup
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Load all data automatically with intelligent APIs.
+              Populate database with sample data for testing.
             </p>
             <Button 
-              onClick={loadAllDataFromApi} 
+              onClick={loadAllDataFromDatabase} 
               disabled={isLoading} 
               className="w-full"
               variant="default"
             >
-              {apiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
-              Load All Data via API
+              {apiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+              Load Sample Data
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Individual APIs</CardTitle>
+            <CardTitle>Individual Data</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button 
-              onClick={loadEmployeesFromApi} 
+              onClick={loadEmployeesFromDatabase} 
               disabled={isLoading} 
               className="w-full"
               variant="outline"
               size="sm"
             >
               {apiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
-              Generate Employees
+              Create Employees
             </Button>
             <Button 
-              onClick={loadSeatsFromApi} 
+              onClick={loadSeatsFromDatabase} 
               disabled={isLoading} 
               className="w-full"
               variant="outline"
               size="sm"
             >
               {apiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
-              Generate Seats
+              Create Seats
             </Button>
             <Button 
-              onClick={generateScheduleFromApi} 
-              disabled={isLoading || stats.employees === 0 || stats.seats === 0} 
+              onClick={generateSampleData} 
+              disabled={isLoading} 
               className="w-full"
               variant="outline"
               size="sm"
             >
               {apiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Calendar className="mr-2 h-4 w-4" />}
-              Generate Schedule
+              Create Sample Data
             </Button>
           </CardContent>
         </Card>
@@ -368,10 +306,8 @@ export function DataManager() {
               <Badge variant="default">Connected</Badge>
             </div>
             <div className="flex justify-between">
-              <span>API Endpoints:</span>
-              <Badge variant={Object.values(apiHealth).every(Boolean) ? "default" : "secondary"}>
-                {Object.values(apiHealth).filter(Boolean).length}/3 Active
-              </Badge>
+              <span>Database Type:</span>
+              <Badge variant="default">Supabase PostgreSQL</Badge>
             </div>
             <div className="flex justify-between">
               <span>Data Loaded:</span>
