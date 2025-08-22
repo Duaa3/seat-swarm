@@ -46,10 +46,11 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
       return aNum - bNum;
     });
     
-    const assignedSeats = Object.entries(assignments || {}).filter(([, seatId]) => {
-      const seat = seats.find(s => s.id === seatId);
-      return seat?.floor === floor;
-    });
+    // Fix: Count unique seat assignments for this floor only
+    const floorSeatIds = new Set(floorSeats.map(s => s.id));
+    const assignedSeats = Object.entries(assignments || {}).filter(([, seatId]) => 
+      floorSeatIds.has(seatId)
+    );
 
     // Calculate features
     const windowSeats = floorSeats.filter(seat => {
@@ -64,7 +65,8 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
 
     const floorTitle = floor === 1 ? "Main workspace" : "Executive & meetings";
     const totalSeats = floorSeats.length;
-    const occupancyPercent = totalSeats > 0 ? Math.round((assignedSeats.length / totalSeats) * 100) : 0;
+    const assignedCount = assignedSeats.length;
+    const occupancyPercent = totalSeats > 0 ? Math.round((assignedCount / totalSeats) * 100) : 0;
 
     // Create a grid of seats (10 seats per row for better layout)
     const seatsPerRow = 10;
@@ -89,7 +91,7 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
             </div>
             <div className="text-right">
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span className="text-lg font-bold text-gray-900">👥 {assignedSeats.length}/{totalSeats}</span>
+                <span className="text-lg font-bold text-gray-900">👥 {assignedCount}/{totalSeats}</span>
               </div>
               <p className="text-xs text-gray-500">{occupancyPercent}% occupied</p>
             </div>
@@ -174,7 +176,7 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
                     <div className="w-4 h-4 bg-gray-300 rounded-full" />
                     <span>Available</span>
                   </div>
-                  <span className="text-sm font-medium">{totalSeats - assignedSeats.length}</span>
+                  <span className="text-sm font-medium">{totalSeats - assignedCount}</span>
                 </div>
               </div>
             </div>
