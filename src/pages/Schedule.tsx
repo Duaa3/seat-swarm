@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import CalendarView from "@/components/planner/CalendarView";
 import WarningsBanner from "@/components/planner/WarningsBanner";
-import { DataManager } from "@/components/DataManager";
 
 import { 
   DAYS, 
@@ -245,11 +244,14 @@ const SchedulePage = () => {
         </div>
       </div>
 
-      {/* Data Management Section */}
-      {!isDataLoaded && (
+      {/* Loading Section */}
+      {loading && (
         <Card className="border-dashed">
-          <CardContent className="pt-6">
-            <DataManager />
+          <CardContent className="pt-6 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <span>Loading data automatically...</span>
+            </div>
           </CardContent>
         </Card>
       )}
