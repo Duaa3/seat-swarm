@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 interface Employee {
-  employee_id: string;
+  id: string;
   full_name: string;
   team: string;
   department: string;
@@ -72,7 +72,6 @@ serve(async (req) => {
       const { data: employees, error } = await supabase
         .from('employees')
         .select('*')
-        .eq('is_active', true)
         .order('full_name');
 
       if (error) {
@@ -133,7 +132,7 @@ function generateEmployees(count: number): Omit<Employee, 'id'>[] {
     }
 
     employees.push({
-      employee_id: `EMP${String(i).padStart(3, '0')}`,
+      id: `EMP${String(i).padStart(3, '0')}`,
       full_name: generateName(),
       team,
       department,

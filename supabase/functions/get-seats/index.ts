@@ -8,13 +8,13 @@ const corsHeaders = {
 };
 
 interface Seat {
-  seat_id: string;
+  id: string;
   floor: number;
   zone: string;
   is_accessible: boolean;
   is_window: boolean;
-  x_coordinate: number;
-  y_coordinate: number;
+  x: number;
+  y: number;
 }
 
 serve(async (req) => {
@@ -71,11 +71,10 @@ serve(async (req) => {
       const { data: seats, error } = await supabase
         .from('seats')
         .select('*')
-        .eq('is_available', true)
         .order('floor')
         .order('zone')
-        .order('x_coordinate')
-        .order('y_coordinate');
+        .order('x')
+        .order('y');
 
       if (error) {
         console.error('Error fetching seats:', error);
@@ -136,13 +135,13 @@ function generateSeats(floors: number, seatsPerFloor: number): Omit<Seat, 'id'>[
         const isAccessible = Math.random() < 0.1;
 
         seats.push({
-          seat_id: `F${floor}-${zone}-${String(seatCount).padStart(2, '0')}`,
+          id: `F${floor}-${zone}-${String(seatCount).padStart(2, '0')}`,
           floor,
           zone,
           is_accessible: isAccessible,
           is_window: isWindow,
-          x_coordinate: x,
-          y_coordinate: y
+          x: x,
+          y: y
         });
       }
     }
