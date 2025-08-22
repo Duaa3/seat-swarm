@@ -377,7 +377,7 @@ const Analytics = () => {
       )}
 
       {/* Real-time Status Panel */}
-      {realTimeMetrics && (
+      {realTimeMetrics && realTimeMetrics.currentOccupancy !== undefined && (
         <div className="grid gap-4 md:grid-cols-4">
           <Card className="border-primary/20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -386,7 +386,7 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                {Math.round(realTimeMetrics.currentOccupancy * 100)}%
+                {Math.round((realTimeMetrics.currentOccupancy || 0) * 100)}%
               </div>
               <p className="text-xs text-blue-600 dark:text-blue-400">
                 {utilizationStatus === 'high' ? '🔴 High' : utilizationStatus === 'low' ? '🟡 Low' : '🟢 Normal'}
@@ -401,11 +401,11 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-700 dark:text-green-300">
-                {realTimeMetrics.activeSatisfactionScore.average.toFixed(1)}/5
+                {realTimeMetrics.activeSatisfactionScore?.average?.toFixed(1) || '0.0'}/5
               </div>
               <p className="text-xs text-green-600 dark:text-green-400">
-                {realTimeMetrics.activeSatisfactionScore.trend === 'improving' ? '📈 Improving' : 
-                 realTimeMetrics.activeSatisfactionScore.trend === 'declining' ? '📉 Declining' : '➡️ Stable'}
+                {realTimeMetrics.activeSatisfactionScore?.trend === 'improving' ? '📈 Improving' : 
+                 realTimeMetrics.activeSatisfactionScore?.trend === 'declining' ? '📉 Declining' : '➡️ Stable'}
               </p>
             </CardContent>
           </Card>
@@ -417,7 +417,7 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                {Math.round(realTimeMetrics.performance.systemEfficiency * 100)}%
+                {Math.round((realTimeMetrics.performance?.systemEfficiency || 0) * 100)}%
               </div>
               <p className="text-xs text-purple-600 dark:text-purple-400">
                 AI Model Performance
@@ -432,7 +432,7 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
-                {realTimeMetrics.predictions.nextHourActivity}
+                {realTimeMetrics.predictions?.nextHourActivity || 'N/A'}
               </div>
               <p className="text-xs text-orange-600 dark:text-orange-400">
                 Next hour activity
