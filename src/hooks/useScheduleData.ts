@@ -28,6 +28,14 @@ export function useScheduleData() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Get current week start date (Monday)
+  const getCurrentWeekStart = useCallback(() => {
+    const today = new Date();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay() + 1); // Monday
+    return weekStart.toISOString().split('T')[0];
+  }, []);
+
   const saveSchedule = async (
     newSchedule: Schedule, 
     employees: Employee[], 
@@ -223,6 +231,17 @@ export function useScheduleData() {
     setAssignments({ Mon: {}, Tue: {}, Wed: {}, Thu: {}, Fri: {} });
     setMetadata(null);
   };
+
+  // Auto-load schedule for current week on mount
+  useEffect(() => {
+    const loadCurrentWeekSchedule = async () => {
+      const currentWeekStart = getCurrentWeekStart();
+      console.log('Loading schedule for current week:', currentWeekStart);
+      await loadScheduleForWeek(currentWeekStart);
+    };
+
+    loadCurrentWeekSchedule();
+  }, [loadScheduleForWeek, getCurrentWeekStart]);
 
   return {
     schedule,
