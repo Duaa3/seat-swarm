@@ -15,31 +15,14 @@ export function useEmployees() {
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching employees from database...');
       const data = await getEmployees();
-      
-      // If no employees exist, automatically generate them
-      if (data.length === 0) {
-        console.log('No employees found, calling edge function to generate them...');
-        const response = await fetch('https://vnbygqpkgtrdzidkyapa.supabase.co/functions/v1/get-employees?generate=true&count=350');
-        const result = await response.json();
-        
-        if (result.employees && result.employees.length > 0) {
-          // Fetch the newly generated employees
-          const newData = await getEmployees();
-          setEmployees(newData);
-          toast({
-            title: "Employees loaded",
-            description: `Generated ${result.count} employees automatically`
-          });
-        } else {
-          setEmployees(data);
-        }
-      } else {
-        setEmployees(data);
-      }
+      setEmployees(data);
+      console.log(`Loaded ${data.length} employees from database`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch employees';
       setError(errorMessage);
+      console.error('Error fetching employees:', errorMessage);
       toast({
         title: "Error",
         description: errorMessage,

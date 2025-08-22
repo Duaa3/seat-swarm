@@ -15,31 +15,14 @@ export function useSeats() {
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching seats from database...');
       const data = await getSeats();
-      
-      // If no seats exist, automatically generate them
-      if (data.length === 0) {
-        console.log('No seats found, calling edge function to generate them...');
-        const response = await fetch('https://vnbygqpkgtrdzidkyapa.supabase.co/functions/v1/get-seats?generate=true&floors=2&seatsPerFloor=150');
-        const result = await response.json();
-        
-        if (result.seats && result.seats.length > 0) {
-          // Fetch the newly generated seats
-          const newData = await getSeats();
-          setSeats(newData);
-          toast({
-            title: "Seats loaded",
-            description: `Generated ${result.count} seats automatically`
-          });
-        } else {
-          setSeats(data);
-        }
-      } else {
-        setSeats(data);
-      }
+      setSeats(data);
+      console.log(`Loaded ${data.length} seats from database`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch seats';
       setError(errorMessage);
+      console.error('Error fetching seats:', errorMessage);
       toast({
         title: "Error",
         description: errorMessage,
