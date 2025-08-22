@@ -12,7 +12,7 @@ interface Employee {
   full_name: string;
   team: string;
   department: string;
-  preferred_work_mode: 'hybrid' | 'remote' | 'office';
+  preferred_work_mode: 'hybrid' | 'remote' | 'onsite';
   needs_accessible: boolean;
   prefer_window: boolean;
   preferred_zone: string;
@@ -106,7 +106,7 @@ function generateEmployees(count: number): Omit<Employee, 'id'>[] {
   const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA", "Marketing", "Support", "Finance"];
   const departments = ["Engineering", "Sales", "Marketing", "Operations", "Finance", "HR", "Design"];
   const zones = ["ZoneA", "ZoneB", "ZoneC", "ZoneD"];
-  const workModes: ('hybrid' | 'remote' | 'office')[] = ["hybrid", "remote", "office"];
+  const workModes: ('hybrid' | 'remote' | 'onsite')[] = ["hybrid", "remote", "onsite"];
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
   const employees: Omit<Employee, 'id'>[] = [];
@@ -116,9 +116,9 @@ function generateEmployees(count: number): Omit<Employee, 'id'>[] {
     const department = departments[Math.floor(Math.random() * departments.length)];
     const workMode = workModes[Math.floor(Math.random() * workModes.length)];
     
-    // Generate realistic preferred days (2-4 days for hybrid, 5 for office, 0-1 for remote)
+    // Generate realistic preferred days (2-4 days for hybrid, 5 for onsite, 0-1 for remote)
     let preferredDays: string[] = [];
-    if (workMode === 'office') {
+    if (workMode === 'onsite') {
       preferredDays = [...days];
     } else if (workMode === 'hybrid') {
       const numDays = 2 + Math.floor(Math.random() * 3); // 2-4 days
@@ -140,7 +140,7 @@ function generateEmployees(count: number): Omit<Employee, 'id'>[] {
       needs_accessible: Math.random() < 0.1, // 10% need accessible
       prefer_window: Math.random() < 0.3, // 30% prefer window
       preferred_zone: zones[Math.floor(Math.random() * zones.length)],
-      onsite_ratio: workMode === 'office' ? 1.0 : 
+      onsite_ratio: workMode === 'onsite' ? 1.0 : 
                    workMode === 'remote' ? Math.random() * 0.2 : 
                    0.3 + Math.random() * 0.5, // hybrid: 0.3-0.8
       project_count: 1 + Math.floor(Math.random() * 5), // 1-5 projects
