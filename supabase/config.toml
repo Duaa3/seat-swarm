@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.generate-schedule]
 verify_jwt = false
+
+[functions.analytics-engine]
+verify_jwt = false
+
+[functions.realtime-monitor]
+verify_jwt = false

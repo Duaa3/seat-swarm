@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, TrendingUp, Users, MapPin, Calendar, Download, Loader2 } from "lucide-react";
+import { BarChart3, TrendingUp, Users, MapPin, Calendar, Download, Loader2, AlertTriangle, Activity, Brain, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useSeats } from "@/hooks/useSeats";
+import { useRealTimeAnalytics } from "@/hooks/useRealTimeAnalytics";
 import { getScheduleAssignments, getDataStats } from "@/lib/supabase-api";
 import { DAYS, DayKey } from "@/types/planner";
 import { toast } from "@/hooks/use-toast";
@@ -20,12 +21,27 @@ const Analytics = () => {
   // Database hooks
   const { employees, loading: employeesLoading } = useEmployees();
   const { seats, loading: seatsLoading } = useSeats();
+  
+  // Real-time analytics hook
+  const {
+    realTimeMetrics,
+    analyticsData,
+    loading: aiLoading,
+    error: aiError,
+    isMonitoring,
+    fetchAnalytics,
+    startMonitoring,
+    stopMonitoring,
+    criticalAlerts,
+    systemHealth,
+    utilizationStatus
+  } = useRealTimeAnalytics();
 
   // All computed values and memos
   const allTeams = React.useMemo(() => [...new Set(employees.map(emp => emp.team))], [employees]);
   const allDepts = React.useMemo(() => [...new Set(employees.map(emp => emp.department))], [employees]);
 
-  const loading = employeesLoading || seatsLoading || analyticsLoading;
+  const loading = employeesLoading || seatsLoading || analyticsLoading || aiLoading;
   const hasData = employees.length > 0 && seats.length > 0;
 
   // All effects
@@ -46,6 +62,10 @@ const Analytics = () => {
         const assignmentData = await getScheduleAssignments(startDate, endDate);
         console.log('Loaded assignment data:', assignmentData);
         setAssignments(assignmentData);
+        
+        // Load AI analytics
+        await fetchAnalytics(selectedPeriod);
+        
       } catch (error) {
         console.error('Error loading analytics data:', error);
         toast({
@@ -59,7 +79,20 @@ const Analytics = () => {
     };
 
     loadAnalyticsData();
-  }, [hasData]);
+  }, [hasData, selectedPeriod, fetchAnalytics]);
+
+  // Start real-time monitoring when component mounts and data is available
+  React.useEffect(() => {
+    if (hasData && !isMonitoring) {
+      const cleanup = startMonitoring();
+      return cleanup;
+    }
+    return () => {
+      if (isMonitoring) {
+        stopMonitoring();
+      }
+    };
+  }, [hasData, isMonitoring, startMonitoring, stopMonitoring]);
 
   // All computed stats using useMemo
   const stats = React.useMemo(() => {
@@ -228,19 +261,28 @@ const Analytics = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Analytics & Insights</h1>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <Brain className="h-8 w-8 text-primary" />
+            AI-Powered Analytics
+          </h1>
           <p className="text-muted-foreground mt-2">
-            Real-time utilization patterns based on actual assignment data
+            Real-time intelligent insights with custom AI algorithms and rule-based optimization
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-muted-foreground">
-            {stats.hasAssignments 
-              ? `Based on ${assignments.length} real assignments`
-              : "Based on employee preferences (no assignments yet)"
-            }
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${isMonitoring ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+            <span className="text-sm text-muted-foreground">
+              {isMonitoring ? 'Live Monitoring' : 'Offline'}
+            </span>
           </div>
-          <Select value={selectedPeriod} onValueChange={(value: "week" | "month" | "quarter") => setSelectedPeriod(value)}>
+          <Badge variant={systemHealth === 'excellent' ? 'default' : systemHealth === 'good' ? 'secondary' : 'destructive'}>
+            System: {systemHealth}
+          </Badge>
+          <Select value={selectedPeriod} onValueChange={(value: "week" | "month" | "quarter") => {
+            setSelectedPeriod(value);
+            fetchAnalytics(value);
+          }}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -252,57 +294,327 @@ const Analytics = () => {
           </Select>
           <Button variant="outline" onClick={exportReport}>
             <Download className="h-4 w-4 mr-2" />
-            Export Report
+            AI Report
           </Button>
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="hover:shadow-glow transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-            <Users className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalEmployees}</div>
-            <p className="text-xs text-muted-foreground">Active workforce</p>
+      {/* Critical Alerts Banner */}
+      {criticalAlerts.length > 0 && (
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <div>
+                <h3 className="font-semibold text-red-900 dark:text-red-200">
+                  {criticalAlerts.length} Critical Alert{criticalAlerts.length > 1 ? 's' : ''}
+                </h3>
+                <div className="space-y-1 mt-2">
+                  {criticalAlerts.map((alert) => (
+                    <p key={alert.id} className="text-sm text-red-700 dark:text-red-300">
+                      • {alert.message}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
+      )}
 
-        <Card className="hover:shadow-glow transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Seats</CardTitle>
-            <MapPin className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalSeats}</div>
-            <p className="text-xs text-muted-foreground">Office capacity</p>
-          </CardContent>
-        </Card>
+      {/* Real-time Status Panel */}
+      {realTimeMetrics && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="border-primary/20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Live Occupancy</CardTitle>
+              <Activity className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                {Math.round(realTimeMetrics.currentOccupancy * 100)}%
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                {utilizationStatus === 'high' ? '🔴 High' : utilizationStatus === 'low' ? '🟡 Low' : '🟢 Normal'}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="hover:shadow-glow transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Occupancy</CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{Math.round(stats.analyticsData.avgOccupancy)}%</div>
-            <p className="text-xs text-muted-foreground">Space utilization</p>
-          </CardContent>
-        </Card>
+          <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Satisfaction</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-700 dark:text-green-300">
+                {realTimeMetrics.activeSatisfactionScore.average.toFixed(1)}/5
+              </div>
+              <p className="text-xs text-green-600 dark:text-green-400">
+                {realTimeMetrics.activeSatisfactionScore.trend === 'improving' ? '📈 Improving' : 
+                 realTimeMetrics.activeSatisfactionScore.trend === 'declining' ? '📉 Declining' : '➡️ Stable'}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="hover:shadow-glow transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assignments</CardTitle>
-            <Calendar className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{assignments.length}</div>
-            <p className="text-xs text-muted-foreground">Total recorded</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">AI Efficiency</CardTitle>
+              <Zap className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                {Math.round(realTimeMetrics.performance.systemEfficiency * 100)}%
+              </div>
+              <p className="text-xs text-purple-600 dark:text-purple-400">
+                AI Model Performance
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Predictions</CardTitle>
+              <Brain className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                {realTimeMetrics.predictions.nextHourActivity}
+              </div>
+              <p className="text-xs text-orange-600 dark:text-orange-400">
+                Next hour activity
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* AI Analytics Sections */}
+      {analyticsData && (
+        <>
+          {/* Machine Learning Insights */}
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                Machine Learning Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Employee Clustering</h4>
+                    <p className="text-sm text-muted-foreground">
+                      AI identified {analyticsData.clustering.employeeSegments} distinct employee behavior segments
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">Pattern Recognition</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Detected {analyticsData.patterns.anomalies.length} anomalies in usage patterns
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Weekly Trends</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Most popular: {analyticsData.patterns.weeklyTrends.mostPopularDay}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Trend: {analyticsData.patterns.weeklyTrends.trendDirection}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">Collaboration Score</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {Math.round(analyticsData.patterns.teamCollaboration.collaborationScore)}% team proximity
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Rule-Based Analysis */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Rule-Based Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-semibold mb-2">Utilization Rules</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Current Rate:</span>
+                      <Badge variant={analyticsData.rules.utilizationRules.status === 'optimal' ? 'default' : 'secondary'}>
+                        {Math.round(analyticsData.rules.utilizationRules.currentUtilization * 100)}%
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{analyticsData.rules.utilizationRules.status}</p>
+                  </div>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-semibold mb-2">Accessibility</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Compliance:</span>
+                      <Badge variant="default">
+                        {Math.round(analyticsData.rules.accessibilityRules.accessibilityComplianceRate * 100)}%
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {analyticsData.rules.accessibilityRules.violations.length} violations
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-semibold mb-2">Preferences</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Match Rate:</span>
+                      <Badge variant="default">
+                        {Math.round(analyticsData.rules.preferenceRules.preferenceMatchRate * 100)}%
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Avg satisfaction: {analyticsData.rules.preferenceRules.satisfactionScore.toFixed(1)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Predictive Analytics */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                AI Predictions & Forecasting
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-semibold mb-2">Next Week Utilization</h4>
+                    <div className="text-2xl font-bold text-primary mb-1">
+                      {Math.round(analyticsData.predictions.nextWeekUtilization.prediction * 100)}%
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">
+                        {Math.round(analyticsData.predictions.nextWeekUtilization.confidence * 100)}% confidence
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {analyticsData.predictions.nextWeekUtilization.trend}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-semibold mb-2">Employee Demand</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Average Daily:</span>
+                        <span className="font-medium">{analyticsData.predictions.employeeDemand.averageDailyDemand}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Peak Day:</span>
+                        <span className="font-medium">{analyticsData.predictions.employeeDemand.peakDayDemand}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-semibold mb-2">Satisfaction Trends</h4>
+                    <div className="text-2xl font-bold text-green-600 mb-1">
+                      {analyticsData.predictions.satisfactionTrends.prediction.toFixed(1)}/5
+                    </div>
+                    <Badge variant={analyticsData.predictions.satisfactionTrends.trend === 'positive' ? 'default' : 'secondary'}>
+                      {analyticsData.predictions.satisfactionTrends.trend}
+                    </Badge>
+                  </div>
+
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-semibold mb-2">Capacity Needs</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Next Month:</span>
+                        <span className="font-medium">{analyticsData.predictions.capacityNeeds.nextMonthCapacity}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Buffer Needed:</span>
+                        <span className="font-medium">{Math.round(analyticsData.predictions.capacityNeeds.recommendedBuffer * 100)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Legacy Analytics (fallback when AI data not available) */}
+      {(!analyticsData || !realTimeMetrics) && stats && (
+        <>
+          {/* Key Metrics */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card className="hover:shadow-glow transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+                <Users className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalEmployees}</div>
+                <p className="text-xs text-muted-foreground">Active workforce</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-glow transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Available Seats</CardTitle>
+                <MapPin className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalSeats}</div>
+                <p className="text-xs text-muted-foreground">Office capacity</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-glow transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Avg Occupancy</CardTitle>
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{Math.round(stats.analyticsData.avgOccupancy)}%</div>
+                <p className="text-xs text-muted-foreground">Space utilization</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-glow transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Assignments</CardTitle>
+                <Calendar className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{assignments.length}</div>
+                <p className="text-xs text-muted-foreground">Total recorded</p>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
 
       {/* Team Utilization */}
       <Card>
