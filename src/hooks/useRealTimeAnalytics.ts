@@ -94,17 +94,27 @@ export function useRealTimeAnalytics() {
       setLoading(true);
       setError(null);
 
+      console.log('Fetching analytics for timeframe:', timeframe);
       const { data, error: analyticsError } = await supabase.functions.invoke('analytics-engine', {
         body: { timeframe }
       });
 
-      if (analyticsError) throw analyticsError;
+      if (analyticsError) {
+        console.error('Analytics engine error:', analyticsError);
+        throw analyticsError;
+      }
 
-      if (data.success) {
+      console.log('Analytics response:', data);
+
+      if (data?.success) {
         setAnalyticsData(data.data);
-        setRealTimeMetrics(data.data.realTimeMetrics);
+        if (data.data?.realTimeMetrics) {
+          setRealTimeMetrics(data.data.realTimeMetrics);
+        }
+        console.log('Analytics data updated');
       } else {
-        throw new Error(data.error || 'Analytics processing failed');
+        console.error('Analytics processing failed:', data);
+        throw new Error(data?.error || 'Analytics processing failed');
       }
 
     } catch (err) {
@@ -119,19 +129,29 @@ export function useRealTimeAnalytics() {
   // Fetch real-time metrics only
   const fetchRealTimeMetrics = useCallback(async () => {
     try {
+      console.log('Fetching real-time metrics...');
       const { data, error: metricsError } = await supabase.functions.invoke('realtime-monitor');
 
-      if (metricsError) throw metricsError;
+      if (metricsError) {
+        console.error('Supabase function error:', metricsError);
+        throw metricsError;
+      }
 
-      if (data.success) {
+      console.log('Real-time metrics response:', data);
+
+      if (data?.success) {
         setRealTimeMetrics(data.data);
+        console.log('Real-time metrics updated:', data.data);
       } else {
-        throw new Error(data.error || 'Real-time monitoring failed');
+        console.error('Real-time monitoring failed:', data);
+        throw new Error(data?.error || 'Real-time monitoring failed');
       }
 
     } catch (err) {
       console.error('Real-time metrics error:', err);
       // Don't set error state for real-time failures to avoid disrupting UI
+      // But set a fallback empty state to prevent undefined errors
+      setRealTimeMetrics(null);
     }
   }, []);
 
@@ -159,17 +179,18 @@ export function useRealTimeAnalytics() {
 
   // Get critical alerts
   const getCriticalAlerts = useCallback(() => {
-    if (!realTimeMetrics?.alerts) return [];
+    if (!realTimeMetrics?.alerts || !Array.isArray(realTimeMetrics.alerts)) return [];
     return realTimeMetrics.alerts.filter(alert => alert.severity === 'critical');
   }, [realTimeMetrics]);
 
   // Get system health status
   const getSystemHealth = useCallback(() => {
-    if (!realTimeMetrics) return 'unknown';
+    if (!realTimeMetrics?.performance?.systemEfficiency || !realTimeMetrics?.systemLoad?.utilization) {
+      return 'unknown';
+    }
     
-    const { performance, systemLoad } = realTimeMetrics;
-    const efficiency = performance.systemEfficiency;
-    const utilization = systemLoad.utilization;
+    const efficiency = realTimeMetrics.performance.systemEfficiency;
+    const utilization = realTimeMetrics.systemLoad.utilization;
     
     if (efficiency > 0.8 && utilization < 0.9) return 'excellent';
     if (efficiency > 0.6 && utilization < 0.95) return 'good';
@@ -179,7 +200,7 @@ export function useRealTimeAnalytics() {
 
   // Get utilization status
   const getUtilizationStatus = useCallback(() => {
-    if (!realTimeMetrics) return 'normal';
+    if (!realTimeMetrics?.systemLoad?.status) return 'normal';
     return realTimeMetrics.systemLoad.status;
   }, [realTimeMetrics]);
 
