@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DayKey, LegacyEmployee, LegacySeat } from "@/types/planner";
 
@@ -16,26 +16,26 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
   
   const floors = React.useMemo(() => Array.from(new Set(seats.map((s) => s.floor))).sort(), [seats]);
 
-  // Define zones for each floor
+  // Define zones for each floor based on the layout in the image
   const getZoneForSeat = (seatId: string, floor: number): string => {
     const seatNum = parseInt(seatId.replace(/[^0-9]/g, ''));
     if (floor === 1) {
-      if (seatNum >= 1 && seatNum <= 16) return 'A';
-      if (seatNum >= 17 && seatNum <= 32) return 'B'; 
-      return 'C';
+      if (seatNum >= 1 && seatNum <= 16) return 'ZoneA';
+      if (seatNum >= 17 && seatNum <= 32) return 'ZoneB'; 
+      return 'ZoneC';
     } else {
-      if (seatNum >= 1 && seatNum <= 20) return 'A';
-      if (seatNum >= 21 && seatNum <= 40) return 'B';
-      return 'C';
+      if (seatNum >= 1 && seatNum <= 17) return 'ZoneA';
+      if (seatNum >= 18 && seatNum <= 33) return 'ZoneB';
+      return 'ZoneC';
     }
   };
 
   const getZoneColor = (zone: string): string => {
     switch (zone) {
-      case 'A': return 'border-teal-400 bg-teal-50/50';
-      case 'B': return 'border-orange-400 bg-orange-50/50';
-      case 'C': return 'border-yellow-400 bg-yellow-50/50';
-      default: return 'border-gray-300 bg-gray-50/50';
+      case 'ZoneA': return 'border-teal-300 bg-teal-50/20';
+      case 'ZoneB': return 'border-gray-300 bg-gray-50/20';
+      case 'ZoneC': return 'border-yellow-300 bg-yellow-50/20';
+      default: return 'border-gray-300 bg-gray-50/20';
     }
   };
 
@@ -51,14 +51,6 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
       return seat?.floor === floor;
     });
 
-    // Group seats by zones
-    const zones = ['A', 'B', 'C'];
-    const seatsByZone = zones.map(zone => ({
-      zone,
-      seats: floorSeats.filter(seat => getZoneForSeat(seat.id, floor) === zone),
-      color: getZoneColor(zone)
-    }));
-
     // Calculate features
     const windowSeats = floorSeats.filter(seat => {
       const seatNum = parseInt(seat.id.replace(/[^0-9]/g, ''));
@@ -71,122 +63,144 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
     });
 
     const floorTitle = floor === 1 ? "Main workspace" : "Executive & meetings";
+    const occupancyPercent = floorSeats.length > 0 ? Math.round((assignedSeats.length / floorSeats.length) * 100) : 0;
+
+    // Arrange seats in rows for the layout
+    const seatsPerRow = 8;
+    const rows = [];
+    for (let i = 0; i < floorSeats.length; i += seatsPerRow) {
+      rows.push(floorSeats.slice(i, i + seatsPerRow));
+    }
+
+    // Group rows into zones
+    const getRowZone = (rowIndex: number): string => {
+      if (rowIndex < 2) return 'ZoneA';
+      if (rowIndex < 4) return 'ZoneB';
+      return 'ZoneC';
+    };
+
+    const zoneRows = [
+      { zone: 'ZoneA', rows: rows.slice(0, 2) },
+      { zone: 'ZoneB', rows: rows.slice(2, 4) },
+      { zone: 'ZoneC', rows: rows.slice(4) }
+    ].filter(zone => zone.rows.length > 0);
 
     return (
-      <Card key={floor} className="p-6">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-purple-600 font-semibold">■</span>
-              </div>
-              <div>
-                <CardTitle className="text-xl">FLOOR {floor}</CardTitle>
-                <p className="text-sm text-muted-foreground">{floorTitle}</p>
-              </div>
+      <div key={floor} className="bg-gray-50 rounded-xl p-6 space-y-4">
+        {/* Floor Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <span className="text-purple-600 font-bold text-lg">🏢</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold">{assignedSeats.length}/{floorSeats.length}</span>
-              <span className="text-sm text-muted-foreground">
-                {Math.round((assignedSeats.length / floorSeats.length) * 100)}% occupied
-              </span>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Floor {floor}</h3>
+              <p className="text-sm text-gray-600">{floorTitle}</p>
             </div>
           </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-4">
-          {seatsByZone.map(({ zone, seats: zoneSeats, color }) => (
-            <div key={zone} className={`rounded-lg border-2 p-4 ${color}`}>
-              <div className="grid grid-cols-8 gap-3">
-                {zoneSeats.map((seat) => {
-                  const empId = Object.keys(assignments || {}).find((eid) => assignments[eid] === seat.id);
-                  const emp = empId ? empById[empId] : null;
-                  const seatNum = parseInt(seat.id.replace(/[^0-9]/g, ''));
-                  const isWindow = windowSeats.includes(seat);
-                  const isAccessible = accessibleSeats.includes(seat);
-                  
-                  return (
-                    <div key={seat.id} className="relative">
-                      <div
-                        className={`w-12 h-12 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-xs font-medium transition-all hover:scale-105 ${
-                          emp 
-                            ? `${teamColor(emp.team)} text-white border-solid shadow-md` 
-                            : "bg-white hover:bg-gray-50"
-                        }`}
-                        title={emp ? `${emp.name} (${emp.team}) - S${seatNum.toString().padStart(2, '0')}` : `S${seatNum.toString().padStart(2, '0')} - Available`}
-                      >
-                        {emp ? emp.name.charAt(0) : seatNum}
-                      </div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-semibold">👥 {assignedSeats.length}/{floorSeats.length}</span>
+            <span className="text-sm text-gray-600">{occupancyPercent}% occupied</span>
+          </div>
+        </div>
+
+        {/* Seating Layout */}
+        <div className="space-y-4">
+          {zoneRows.map(({ zone, rows: zoneRowData }) => (
+            <div key={zone} className={`rounded-xl p-4 border-2 ${getZoneColor(zone)}`}>
+              <div className="space-y-3">
+                {zoneRowData.map((row, rowIndex) => (
+                  <div key={rowIndex} className="flex justify-center gap-2">
+                    {row.map((seat) => {
+                      const empId = Object.keys(assignments || {}).find((eid) => assignments[eid] === seat.id);
+                      const emp = empId ? empById[empId] : null;
+                      const seatNum = parseInt(seat.id.replace(/[^0-9]/g, ''));
+                      const isWindow = windowSeats.includes(seat);
+                      const isAccessible = accessibleSeats.includes(seat);
                       
-                      {/* Feature indicators */}
-                      <div className="absolute -top-1 -right-1 flex flex-col gap-1">
-                        {isWindow && (
-                          <div className="w-3 h-3 bg-yellow-400 rounded-full" title="Window seat" />
-                        )}
-                        {isAccessible && (
-                          <div className="w-3 h-3 bg-green-500 rounded-full" title="Accessible seat" />
-                        )}
-                      </div>
-                      
-                      {/* Seat number label */}
-                      <div className="text-center text-xs text-gray-500 mt-1">
-                        S{seatNum.toString().padStart(2, '0')}
-                      </div>
-                    </div>
-                  );
-                })}
+                      return (
+                        <div key={seat.id} className="relative flex flex-col items-center">
+                          <div className="text-xs text-gray-500 mb-1">
+                            S{seatNum.toString().padStart(2, '0')}
+                          </div>
+                          <div
+                            className={`w-12 h-12 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center text-xs font-medium transition-all hover:scale-105 relative ${
+                              emp 
+                                ? `${teamColor(emp.team)} text-white border-solid shadow-md` 
+                                : "bg-white hover:bg-gray-50"
+                            }`}
+                            title={emp ? `${emp.name} (${emp.team})` : `Available`}
+                          >
+                            {emp ? emp.name.charAt(0) : ''}
+                            
+                            {/* Feature indicators */}
+                            <div className="absolute -top-1 -right-1 flex flex-col gap-1">
+                              {isWindow && (
+                                <div className="w-3 h-3 bg-yellow-400 rounded-full" title="Window seat" />
+                              )}
+                              {isAccessible && (
+                                <div className="w-3 h-3 bg-teal-500 rounded-full" title="Accessible seat" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
+        </div>
 
-          {/* Floor Features & Zones Legend */}
-          <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t">
-            <div>
-              <h4 className="font-semibold text-sm mb-2">FEATURES</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-yellow-400 rounded-full" />
-                  <span>Window ({windowSeats.length})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full" />
-                  <span>Accessible ({accessibleSeats.length})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gray-300 rounded-full" />
-                  <span>Available ({floorSeats.length - assignedSeats.length})</span>
-                </div>
+        {/* Floor Statistics */}
+        <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-200">
+          <div>
+            <h4 className="font-semibold text-sm mb-2 text-gray-700">FEATURES</h4>
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-yellow-400 rounded-full" />
+                <span>Window ({windowSeats.length})</span>
               </div>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-sm mb-2">ZONES</h4>
-              <div className="space-y-1 text-sm">
-                {seatsByZone.map(({ zone, seats: zoneSeats }) => {
-                  const zoneAssigned = assignedSeats.filter(([, seatId]) => {
-                    const seat = seats.find(s => s.id === seatId);
-                    return seat && getZoneForSeat(seat.id, floor) === zone;
-                  }).length;
-                  
-                  return (
-                    <div key={zone}>
-                      Zone {zone}: {zoneAssigned}/{zoneSeats.length}
-                    </div>
-                  );
-                })}
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-teal-500 rounded-full" />
+                <span>Accessible ({accessibleSeats.length})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-gray-300 rounded-full" />
+                <span>Available ({floorSeats.length - assignedSeats.length})</span>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          
+          <div>
+            <h4 className="font-semibold text-sm mb-2 text-gray-700">ZONES</h4>
+            <div className="space-y-1 text-sm">
+              {['ZoneA', 'ZoneB', 'ZoneC'].map((zone) => {
+                const zoneSeats = floorSeats.filter(seat => getZoneForSeat(seat.id, floor) === zone);
+                const zoneAssigned = assignedSeats.filter(([, seatId]) => {
+                  const seat = seats.find(s => s.id === seatId);
+                  return seat && getZoneForSeat(seat.id, floor) === zone;
+                }).length;
+                
+                return (
+                  <div key={zone}>
+                    {zone}: {zoneAssigned}/{zoneSeats.length}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
     );
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Seating Map - {day}</h2>
-        <Badge variant="outline">
+        <h2 className="text-2xl font-bold text-gray-900">Seating Map - {day}</h2>
+        <Badge variant="outline" className="text-sm">
           {Object.keys(assignments || {}).length} total assignments
         </Badge>
       </div>
