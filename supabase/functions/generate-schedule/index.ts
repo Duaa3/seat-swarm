@@ -99,8 +99,72 @@ serve(async (req) => {
 
     console.log(`Generating schedule for ${employees.length} employees and ${seats.length} seats`);
 
-    // Generate schedule using capacity-based algorithm with seat assignments
-    const schedule = generateScheduleLogic(employees, seats, dayCapacities, deptCapacity);
+    // Use the advanced optimize-schedule logic
+    const optimizeRequest = {
+      employees: employees.map(emp => ({
+        employee_id: emp.employee_id,
+        full_name: emp.full_name,
+        department: emp.department,
+        team: emp.team,
+        preferred_work_mode: emp.preferred_work_mode,
+        needs_accessible: emp.needs_accessible,
+        prefer_window: emp.prefer_window,
+        preferred_zone: emp.preferred_zone,
+        preferred_days: emp.preferred_days,
+        onsite_ratio: emp.onsite_ratio,
+        project_count: emp.project_count,
+        client_site_ratio: 0.1, // default
+        availability_ratio: 1.0, // default
+        commute_minutes: 30.0 // default
+      })),
+      seats: seats.map(seat => ({
+        seat_id: seat.seat_id,
+        floor: seat.floor,
+        zone: seat.zone,
+        is_accessible: seat.is_accessible,
+        is_window: seat.is_window,
+        x: seat.x_coordinate,
+        y: seat.y_coordinate
+      })),
+      capacity_by_day: {
+        Mon: Math.floor((dayCapacities.Mon / 100) * seats.length),
+        Tue: Math.floor((dayCapacities.Tue / 100) * seats.length),
+        Wed: Math.floor((dayCapacities.Wed / 100) * seats.length),
+        Thu: Math.floor((dayCapacities.Thu / 100) * seats.length),
+        Fri: Math.floor((dayCapacities.Fri / 100) * seats.length)
+      },
+      dept_day_cap_pct: deptCapacity / 100,
+      together_teams: teamClusters.length > 0 ? [teamClusters] : [],
+      team_together_mode: 'soft' as const,
+      weights: requestData.weights || {},
+      solver: 'greedy' as const,
+      days: ["Mon", "Tue", "Wed", "Thu", "Fri"]
+    };
+
+    // Call the optimize-schedule function
+    const optimizeResponse = await supabase.functions.invoke('optimize-schedule', {
+      body: optimizeRequest
+    });
+
+    if (optimizeResponse.error) {
+      throw new Error(`Schedule optimization failed: ${optimizeResponse.error.message}`);
+    }
+
+    const optimizeResult = optimizeResponse.data;
+    
+    // Convert the optimize-schedule response to the expected format
+    const schedule: Record<DayKey, Assignment[]> = {
+      Mon: [], Tue: [], Wed: [], Thu: [], Fri: []
+    };
+
+    for (const day of DAYS) {
+      if (optimizeResult.assignments[day]) {
+        schedule[day] = optimizeResult.assignments[day].map((assignment: any) => ({
+          employeeId: assignment.employee_id,
+          seatId: assignment.seat_id
+        }));
+      }
+    }
     
     // Save schedule to database
     const assignmentRecords = [];

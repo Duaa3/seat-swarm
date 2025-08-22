@@ -147,6 +147,43 @@ export interface ScheduleResponse {
   };
 }
 
+// Import new Supabase scheduler functions
+export async function optimizeScheduleAdvanced(request: any): Promise<ApiResponse<any>> {
+  try {
+    const { data, error } = await supabase.functions.invoke('optimize-schedule', {
+      body: request,
+    });
+
+    if (error) {
+      console.error('API Error optimizing schedule:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error calling optimize-schedule function:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function assignSeatsAdvanced(request: any): Promise<ApiResponse<any>> {
+  try {
+    const { data, error } = await supabase.functions.invoke('assign-seats', {
+      body: request,
+    });
+
+    if (error) {
+      console.error('API Error assigning seats:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error calling assign-seats function:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function generateScheduleAPI(request: ScheduleRequest = {}): Promise<ApiResponse<ScheduleResponse>> {
   try {
     const { data, error } = await supabase.functions.invoke('generate-schedule', {

@@ -115,15 +115,30 @@ const SeatingMapPage = () => {
     try {
       setAssignLoading(true);
       
-      // Simple assignment logic - assign seats in order
+      // Use the advanced Supabase scheduler for seat assignment
+      const { supabaseClient, toSupabaseEmployee, toSupabaseSeat } = await import('@/lib/supabase-scheduler');
+      
+      const assignmentRequest = {
+        employees: dayEmployees.map(empId => {
+          const emp = dbEmployees.find(e => e.employee_id === empId);
+          return emp ? toSupabaseEmployee(emp) : null;
+        }).filter(Boolean),
+        seats: dbSeats.map(seat => toSupabaseSeat(seat)),
+        weights: {
+          w_accessible: 2.0,
+          w_window: 1.5,
+          w_zone: 1.0,
+          w_zone_cohesion: 1.0
+        },
+        solver: 'greedy' as const
+      };
+
+      const assignmentResponse = await supabaseClient.assignSeats(assignmentRequest);
+      
+      // Convert response to the expected format
       const dayAssign: Record<string, string> = {};
-      const availableSeats = dbSeats.map(s => s.seat_id);
-      
-      // Only assign up to the number of available seats
-      const employeesToAssign = dayEmployees.slice(0, availableSeats.length);
-      
-      for (let i = 0; i < employeesToAssign.length; i++) {
-        dayAssign[employeesToAssign[i]] = availableSeats[i];
+      for (const assignment of assignmentResponse.assignments) {
+        dayAssign[assignment.employee_id] = assignment.seat_id;
       }
 
       // Calculate the assignment date correctly
