@@ -328,22 +328,14 @@ const SeatingMapPage = () => {
             </div>
           </CardContent>
         </Card>
-      ) : (schedule[selectedDay]?.length || 0) === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <div className="text-muted-foreground">
-                No employees scheduled for {selectedDay}. Generate a schedule from the Schedule page first.
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       ) : dayAssignments.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <div className="text-muted-foreground">
-                No seat assignments for {selectedDay}. Generate a schedule and assign seats from the Schedule page.
+                No seat assignments for {selectedDay}. {(schedule[selectedDay]?.length || 0) === 0 
+                  ? "Generate a schedule from the Schedule page first." 
+                  : "Assign seats from the Schedule page."}
               </div>
             </div>
           </CardContent>
