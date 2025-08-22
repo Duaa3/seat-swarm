@@ -58,8 +58,8 @@ serve(async (req) => {
 
     // Get employees and seats
     const [employeesResult, seatsResult] = await Promise.all([
-      supabase.from('employees').select('*').eq('is_active', true),
-      supabase.from('seats').select('*').eq('is_available', true)
+      supabase.from('employees').select('*'),
+      supabase.from('seats').select('*')
     ]);
 
     if (employeesResult.error) {
@@ -102,7 +102,7 @@ serve(async (req) => {
     // Use the advanced optimize-schedule logic
     const optimizeRequest = {
       employees: employees.map(emp => ({
-        employee_id: emp.employee_id,
+        employee_id: emp.id,
         full_name: emp.full_name,
         department: emp.department,
         team: emp.team,
@@ -113,18 +113,18 @@ serve(async (req) => {
         preferred_days: emp.preferred_days,
         onsite_ratio: emp.onsite_ratio,
         project_count: emp.project_count,
-        client_site_ratio: 0.1, // default
-        availability_ratio: 1.0, // default
-        commute_minutes: 30.0 // default
+        client_site_ratio: emp.client_site_ratio || 0.1,
+        availability_ratio: emp.availability_ratio || 1.0,
+        commute_minutes: emp.commute_minutes || 30.0
       })),
       seats: seats.map(seat => ({
-        seat_id: seat.seat_id,
+        seat_id: seat.id,
         floor: seat.floor,
         zone: seat.zone,
         is_accessible: seat.is_accessible,
         is_window: seat.is_window,
-        x: seat.x_coordinate,
-        y: seat.y_coordinate
+        x: seat.x,
+        y: seat.y
       })),
       capacity_by_day: {
         Mon: Math.floor((dayCapacities.Mon / 100) * seats.length),
@@ -306,46 +306,46 @@ function generateScheduleLogic(
     
     const order = [...shuffledPreferred, ...shuffledOthers];
 
-    for (const emp of order) {
-      if (schedule[day].length >= capSeats) break;
-      if (deptCount[emp.department] >= perDeptDailyCap[emp.department]) continue;
-      if (availableSeats.length === 0) break;
-      
-      // Find best seat for employee
-      let assignedSeat = null;
-      
-      // Prioritize accessible seats for employees who need them
-      if (emp.needs_accessible) {
-        assignedSeat = availableSeats.find(seat => seat.is_accessible);
-      }
-      
-      // Prioritize window seats for employees who prefer them
-      if (!assignedSeat && emp.prefer_window) {
-        assignedSeat = availableSeats.find(seat => seat.is_window);
-      }
-      
-      // Prioritize preferred zone
-      if (!assignedSeat && emp.preferred_zone) {
-        assignedSeat = availableSeats.find(seat => seat.zone === emp.preferred_zone);
-      }
-      
-      // Otherwise, take any available seat
-      if (!assignedSeat) {
-        assignedSeat = availableSeats[0];
-      }
-      
-      if (assignedSeat) {
-        schedule[day].push({
-          employeeId: emp.employee_id,
-          seatId: assignedSeat.id
-        });
-        deptCount[emp.department]++;
+      for (const emp of order) {
+        if (schedule[day].length >= capSeats) break;
+        if (deptCount[emp.department] >= perDeptDailyCap[emp.department]) continue;
+        if (availableSeats.length === 0) break;
         
-        // Remove assigned seat from available seats
-        const seatIndex = availableSeats.findIndex(s => s.id === assignedSeat.id);
-        availableSeats.splice(seatIndex, 1);
+        // Find best seat for employee
+        let assignedSeat = null;
+        
+        // Prioritize accessible seats for employees who need them
+        if (emp.needs_accessible) {
+          assignedSeat = availableSeats.find(seat => seat.is_accessible);
+        }
+        
+        // Prioritize window seats for employees who prefer them
+        if (!assignedSeat && emp.prefer_window) {
+          assignedSeat = availableSeats.find(seat => seat.is_window);
+        }
+        
+        // Prioritize preferred zone
+        if (!assignedSeat && emp.preferred_zone) {
+          assignedSeat = availableSeats.find(seat => seat.zone === emp.preferred_zone);
+        }
+        
+        // Otherwise, take any available seat
+        if (!assignedSeat) {
+          assignedSeat = availableSeats[0];
+        }
+        
+        if (assignedSeat) {
+          schedule[day].push({
+            employeeId: emp.id,
+            seatId: assignedSeat.id
+          });
+          deptCount[emp.department]++;
+          
+          // Remove assigned seat from available seats
+          const seatIndex = availableSeats.findIndex(s => s.id === assignedSeat.id);
+          availableSeats.splice(seatIndex, 1);
+        }
       }
-    }
   });
 
   return schedule;

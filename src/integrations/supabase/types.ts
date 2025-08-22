@@ -59,83 +59,153 @@ export type Database = {
         }
         Relationships: []
       }
+      assignments: {
+        Row: {
+          created_at: string | null
+          employee_id: string | null
+          id: string
+          reasons: Json | null
+          schedule_day_id: string | null
+          score: number | null
+          seat_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string
+          reasons?: Json | null
+          schedule_day_id?: string | null
+          score?: number | null
+          seat_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string
+          reasons?: Json | null
+          schedule_day_id?: string | null
+          score?: number | null
+          seat_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_schedule_day_id_fkey"
+            columns: ["schedule_day_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_seat_id_fkey"
+            columns: ["seat_id"]
+            isOneToOne: false
+            referencedRelation: "seats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      constraints: {
+        Row: {
+          created_at: string | null
+          dept_day_cap_pct: number
+          id: string
+          solver: string
+          team_together_mode: string
+          together_teams: string[] | null
+          updated_at: string | null
+          weights: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          dept_day_cap_pct?: number
+          id?: string
+          solver?: string
+          team_together_mode?: string
+          together_teams?: string[] | null
+          updated_at?: string | null
+          weights?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          dept_day_cap_pct?: number
+          id?: string
+          solver?: string
+          team_together_mode?: string
+          together_teams?: string[] | null
+          updated_at?: string | null
+          weights?: Json | null
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
-          arrival_time: string | null
-          collaboration_score: number | null
+          availability_ratio: number | null
+          client_site_ratio: number | null
+          commute_minutes: number | null
           created_at: string | null
-          department: string
-          departure_time: string | null
-          email: string | null
-          employee_id: string
-          flexibility_score: number | null
-          focus_preference: string | null
-          full_name: string
-          hire_date: string | null
+          department: string | null
+          extra: Json | null
+          full_name: string | null
           id: string
-          is_active: boolean | null
-          manager_id: string | null
           needs_accessible: boolean | null
           onsite_ratio: number | null
           prefer_window: boolean | null
           preferred_days: string[] | null
           preferred_work_mode: string | null
           preferred_zone: string | null
+          priority_level: number | null
           project_count: number | null
-          role: string | null
-          team: string
+          team: string | null
           updated_at: string | null
         }
         Insert: {
-          arrival_time?: string | null
-          collaboration_score?: number | null
+          availability_ratio?: number | null
+          client_site_ratio?: number | null
+          commute_minutes?: number | null
           created_at?: string | null
-          department: string
-          departure_time?: string | null
-          email?: string | null
-          employee_id: string
-          flexibility_score?: number | null
-          focus_preference?: string | null
-          full_name: string
-          hire_date?: string | null
-          id?: string
-          is_active?: boolean | null
-          manager_id?: string | null
+          department?: string | null
+          extra?: Json | null
+          full_name?: string | null
+          id: string
           needs_accessible?: boolean | null
           onsite_ratio?: number | null
           prefer_window?: boolean | null
           preferred_days?: string[] | null
           preferred_work_mode?: string | null
           preferred_zone?: string | null
+          priority_level?: number | null
           project_count?: number | null
-          role?: string | null
-          team: string
+          team?: string | null
           updated_at?: string | null
         }
         Update: {
-          arrival_time?: string | null
-          collaboration_score?: number | null
+          availability_ratio?: number | null
+          client_site_ratio?: number | null
+          commute_minutes?: number | null
           created_at?: string | null
-          department?: string
-          departure_time?: string | null
-          email?: string | null
-          employee_id?: string
-          flexibility_score?: number | null
-          focus_preference?: string | null
-          full_name?: string
-          hire_date?: string | null
+          department?: string | null
+          extra?: Json | null
+          full_name?: string | null
           id?: string
-          is_active?: boolean | null
-          manager_id?: string | null
           needs_accessible?: boolean | null
           onsite_ratio?: number | null
           prefer_window?: boolean | null
           preferred_days?: string[] | null
           preferred_work_mode?: string | null
           preferred_zone?: string | null
+          priority_level?: number | null
           project_count?: number | null
-          role?: string | null
-          team?: string
+          team?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -224,6 +294,30 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string | null
+          full_name: string | null
+          id: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          role?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       schedule_assignments: {
         Row: {
           assignment_date: string
@@ -276,85 +370,119 @@ export type Database = {
           seat_id?: string | null
           updated_at?: string | null
         }
+        Relationships: []
+      }
+      schedule_days: {
+        Row: {
+          capacity: number
+          created_at: string | null
+          day_name: string
+          id: string
+          schedule_id: string | null
+          updated_at: string | null
+          violations: string[]
+        }
+        Insert: {
+          capacity: number
+          created_at?: string | null
+          day_name: string
+          id?: string
+          schedule_id?: string | null
+          updated_at?: string | null
+          violations?: string[]
+        }
+        Update: {
+          capacity?: number
+          created_at?: string | null
+          day_name?: string
+          id?: string
+          schedule_id?: string | null
+          updated_at?: string | null
+          violations?: string[]
+        }
         Relationships: [
           {
-            foreignKeyName: "schedule_assignments_employee_id_fkey"
-            columns: ["employee_id"]
+            foreignKeyName: "schedule_days_schedule_id_fkey"
+            columns: ["schedule_id"]
             isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["employee_id"]
+            referencedRelation: "schedules"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "schedule_assignments_seat_id_fkey"
-            columns: ["seat_id"]
+            foreignKeyName: "schedule_days_schedule_id_fkey"
+            columns: ["schedule_id"]
             isOneToOne: false
-            referencedRelation: "seats"
-            referencedColumns: ["seat_id"]
+            referencedRelation: "v_floor_occupancy"
+            referencedColumns: ["schedule_id"]
+          },
+          {
+            foreignKeyName: "schedule_days_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "v_zone_stats"
+            referencedColumns: ["schedule_id"]
           },
         ]
+      }
+      schedules: {
+        Row: {
+          created_at: string | null
+          id: string
+          meta: Json | null
+          status: string
+          updated_at: string | null
+          week_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          meta?: Json | null
+          status?: string
+          updated_at?: string | null
+          week_start: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          meta?: Json | null
+          status?: string
+          updated_at?: string | null
+          week_start?: string
+        }
+        Relationships: []
       }
       seats: {
         Row: {
           created_at: string | null
-          desk_type: string | null
           floor: number
-          has_monitor: boolean | null
           id: string
           is_accessible: boolean | null
-          is_available: boolean | null
-          is_corner: boolean | null
           is_window: boolean | null
-          maintenance_status: string | null
-          monitor_count: number | null
-          natural_light_level: string | null
-          noise_level: string | null
-          proximity_to_facilities: number | null
-          seat_id: string
           updated_at: string | null
-          x_coordinate: number
-          y_coordinate: number
+          x: number
+          y: number
           zone: string
         }
         Insert: {
           created_at?: string | null
-          desk_type?: string | null
           floor: number
-          has_monitor?: boolean | null
-          id?: string
+          id: string
           is_accessible?: boolean | null
-          is_available?: boolean | null
-          is_corner?: boolean | null
           is_window?: boolean | null
-          maintenance_status?: string | null
-          monitor_count?: number | null
-          natural_light_level?: string | null
-          noise_level?: string | null
-          proximity_to_facilities?: number | null
-          seat_id: string
           updated_at?: string | null
-          x_coordinate: number
-          y_coordinate: number
+          x: number
+          y: number
           zone: string
         }
         Update: {
           created_at?: string | null
-          desk_type?: string | null
           floor?: number
-          has_monitor?: boolean | null
           id?: string
           is_accessible?: boolean | null
-          is_available?: boolean | null
-          is_corner?: boolean | null
           is_window?: boolean | null
-          maintenance_status?: string | null
-          monitor_count?: number | null
-          natural_light_level?: string | null
-          noise_level?: string | null
-          proximity_to_facilities?: number | null
-          seat_id?: string
           updated_at?: string | null
-          x_coordinate?: number
-          y_coordinate?: number
+          x?: number
+          y?: number
           zone?: string
         }
         Relationships: []
@@ -394,10 +522,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_floor_occupancy: {
+        Row: {
+          day_name: string | null
+          floor: number | null
+          occupied: number | null
+          schedule_id: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      v_zone_stats: {
+        Row: {
+          accessible_count: number | null
+          available: number | null
+          day_name: string | null
+          occupied: number | null
+          schedule_id: string | null
+          total_seats: number | null
+          window_count: number | null
+          zone: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      floor_occupancy: {
+        Args: { p_day_name: string; p_schedule_id: string }
+        Returns: {
+          floor: number
+          occupied: number
+          total: number
+        }[]
+      }
+      get_user_role: {
+        Args: { user_id?: string }
+        Returns: string
+      }
+      week_schedule: {
+        Args: { week_start: string }
+        Returns: {
+          day_name: string
+          employee_id: string
+          floor: number
+          reasons: Json
+          score: number
+          seat_id: string
+          zone: string
+        }[]
+      }
+      zone_summary: {
+        Args: { p_day_name: string; p_schedule_id: string }
+        Returns: {
+          accessible_count: number
+          available: number
+          occupied: number
+          total_seats: number
+          window_count: number
+          zone: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

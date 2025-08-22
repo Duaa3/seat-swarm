@@ -9,8 +9,20 @@ verify_jwt = false
 [functions.generate-schedule]
 verify_jwt = false
 
+[functions.assign-preview]
+verify_jwt = false
+
+[functions.import-csv]
+verify_jwt = false
+
 [functions.analytics-engine]
 verify_jwt = false
 
 [functions.realtime-monitor]
+verify_jwt = false
+
+[functions.optimize-schedule]
+verify_jwt = false
+
+[functions.assign-seats]
 verify_jwt = false

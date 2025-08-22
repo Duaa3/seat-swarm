@@ -17,7 +17,6 @@ export async function getEmployees(): Promise<Employee[]> {
   const { data, error } = await supabase
     .from('employees')
     .select('*')
-    .eq('is_active', true)
     .order('full_name');
     
   if (error) {
@@ -49,7 +48,7 @@ export async function updateEmployee(employeeId: string, updates: Partial<Employ
   const { data, error } = await supabase
     .from('employees')
     .update(employeeToDbEmployee(updates))
-    .eq('employee_id', employeeId)
+    .eq('id', employeeId)
     .select()
     .single();
     
@@ -64,8 +63,8 @@ export async function updateEmployee(employeeId: string, updates: Partial<Employ
 export async function deleteEmployee(employeeId: string): Promise<void> {
   const { error } = await supabase
     .from('employees')
-    .update({ is_active: false })
-    .eq('employee_id', employeeId);
+    .delete()
+    .eq('id', employeeId);
     
   if (error) {
     console.error('Error deleting employee:', error);
@@ -95,11 +94,10 @@ export async function getSeats(): Promise<Seat[]> {
   const { data, error } = await supabase
     .from('seats')
     .select('*')
-    .eq('is_available', true)
     .order('floor', { ascending: true })
     .order('zone')
-    .order('x_coordinate')
-    .order('y_coordinate');
+    .order('x')
+    .order('y');
     
   if (error) {
     console.error('Error fetching seats:', error);
@@ -240,7 +238,7 @@ export async function bulkSaveScheduleAssignments(assignments: Array<{
 
 function dbEmployeeToEmployee(dbEmployee: DbEmployee): Employee {
   return {
-    employee_id: dbEmployee.employee_id,
+    employee_id: dbEmployee.id,
     full_name: dbEmployee.full_name,
     team: dbEmployee.team,
     department: dbEmployee.department,
@@ -257,7 +255,7 @@ function dbEmployeeToEmployee(dbEmployee: DbEmployee): Employee {
 function employeeToDbEmployee(employee: Partial<Employee>): Partial<DbEmployeeInsert> {
   const dbEmployee: any = {};
   
-  if (employee.employee_id) dbEmployee.employee_id = employee.employee_id;
+  if (employee.employee_id) dbEmployee.id = employee.employee_id;
   if (employee.full_name) dbEmployee.full_name = employee.full_name;
   if (employee.team) dbEmployee.team = employee.team;
   if (employee.department) dbEmployee.department = employee.department;
@@ -274,26 +272,26 @@ function employeeToDbEmployee(employee: Partial<Employee>): Partial<DbEmployeeIn
 
 function dbSeatToSeat(dbSeat: DbSeat): Seat {
   return {
-    seat_id: dbSeat.seat_id,
+    seat_id: dbSeat.id,
     floor: dbSeat.floor,
     zone: dbSeat.zone,
     is_accessible: dbSeat.is_accessible || false,
     is_window: dbSeat.is_window || false,
-    x: dbSeat.x_coordinate,
-    y: dbSeat.y_coordinate
+    x: dbSeat.x,
+    y: dbSeat.y
   };
 }
 
 function seatToDbSeat(seat: Partial<Seat>): Partial<DbSeatInsert> {
   const dbSeat: any = {};
   
-  if (seat.seat_id) dbSeat.seat_id = seat.seat_id;
+  if (seat.seat_id) dbSeat.id = seat.seat_id;
   if (seat.floor !== undefined) dbSeat.floor = seat.floor;
   if (seat.zone) dbSeat.zone = seat.zone;
   if (seat.is_accessible !== undefined) dbSeat.is_accessible = seat.is_accessible;
   if (seat.is_window !== undefined) dbSeat.is_window = seat.is_window;
-  if (seat.x !== undefined) dbSeat.x_coordinate = seat.x;
-  if (seat.y !== undefined) dbSeat.y_coordinate = seat.y;
+  if (seat.x !== undefined) dbSeat.x = seat.x;
+  if (seat.y !== undefined) dbSeat.y = seat.y;
   
   return dbSeat;
 }
