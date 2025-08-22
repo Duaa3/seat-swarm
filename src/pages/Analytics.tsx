@@ -57,11 +57,11 @@ const Analytics = () => {
 
   // All effects
   React.useEffect(() => {
-    const loadAnalyticsData = async () => {
-      console.log('loadAnalyticsData called', { hasData, employeesLoading, seatsLoading });
+    const loadBasicData = async () => {
+      console.log('loadBasicData called', { hasData, employeesLoading, seatsLoading });
       
       if (!hasData) {
-        console.log('No data available, skipping analytics load');
+        console.log('No data available, skipping basic data load');
         setAnalyticsLoading(false);
         return;
       }
@@ -78,17 +78,11 @@ const Analytics = () => {
         console.log('Loaded assignment data:', assignmentData);
         setAssignments(assignmentData);
         
-        // Only try to load AI analytics if we have basic data
-        if (employees.length > 0 && seats.length > 0) {
-          console.log('Loading AI analytics...');
-          await fetchAnalytics(selectedPeriod);
-        }
-        
       } catch (error) {
-        console.error('Error loading analytics data:', error);
+        console.error('Error loading basic data:', error);
         toast({
-          title: "Error loading analytics",
-          description: "Failed to load assignment data. Basic analytics will still be available.",
+          title: "Error loading data",
+          description: "Failed to load assignment data.",
           variant: "destructive"
         });
       } finally {
@@ -97,24 +91,9 @@ const Analytics = () => {
     };
 
     // Add a small delay to ensure data is loaded
-    const timer = setTimeout(loadAnalyticsData, 100);
+    const timer = setTimeout(loadBasicData, 100);
     return () => clearTimeout(timer);
-  }, [hasData, selectedPeriod, fetchAnalytics, employees.length, seats.length]);
-
-  // Start real-time monitoring when component mounts and data is available  
-  React.useEffect(() => {
-    if (hasData && !isMonitoring && !aiLoading) {
-      console.log('Starting real-time monitoring...');
-      const cleanup = startMonitoring();
-      return cleanup;
-    }
-    return () => {
-      if (isMonitoring) {
-        console.log('Stopping real-time monitoring...');
-        stopMonitoring();
-      }
-    };
-  }, [hasData, isMonitoring, startMonitoring, stopMonitoring, aiLoading]);
+  }, [hasData, employees.length, seats.length]);
 
   // All computed stats using useMemo
   const stats = React.useMemo(() => {
@@ -210,6 +189,20 @@ const Analytics = () => {
   }, [employees, seats, allTeams, allDepts, assignments, hasData]);
 
   // All callbacks
+  const handleRequestAnalytics = React.useCallback(async () => {
+    if (!hasData) {
+      toast({ 
+        title: "No data available", 
+        description: "Please load employee and seat data first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log('Manual analytics request initiated...');
+    await fetchAnalytics(selectedPeriod);
+  }, [hasData, selectedPeriod, fetchAnalytics]);
+
   const exportReport = React.useCallback(() => {
     if (!hasData) {
       toast({ 
@@ -305,18 +298,8 @@ const Analytics = () => {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isMonitoring ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-            <span className="text-sm text-muted-foreground">
-              {isMonitoring ? 'Live Monitoring' : 'Offline'}
-            </span>
-          </div>
-          <Badge variant={systemHealth === 'excellent' ? 'default' : systemHealth === 'good' ? 'secondary' : 'destructive'}>
-            System: {systemHealth}
-          </Badge>
           <Select value={selectedPeriod} onValueChange={(value: "week" | "month" | "quarter") => {
             setSelectedPeriod(value);
-            fetchAnalytics(value);
           }}>
             <SelectTrigger className="w-32">
               <SelectValue />
@@ -327,9 +310,26 @@ const Analytics = () => {
               <SelectItem value="quarter">This Quarter</SelectItem>
             </SelectContent>
           </Select>
+          <Button 
+            onClick={handleRequestAnalytics} 
+            disabled={aiLoading}
+            className="bg-primary hover:bg-primary/90"
+          >
+            {aiLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <Brain className="h-4 w-4 mr-2" />
+                Request AI Analytics
+              </>
+            )}
+          </Button>
           <Button variant="outline" onClick={exportReport}>
             <Download className="h-4 w-4 mr-2" />
-            AI Report
+            Export Report
           </Button>
         </div>
       </div>
