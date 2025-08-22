@@ -30,7 +30,7 @@ export function useSeats() {
     }
   };
 
-  const addSeat = async (seat: Omit<Seat, 'seat_id'>) => {
+  const addSeat = async (seat: Omit<Seat, 'id'>) => {
     try {
       const newSeat = await createSeat(seat);
       setSeats(prev => [...prev, newSeat]);
@@ -50,7 +50,7 @@ export function useSeats() {
     }
   };
 
-  const addSeats = async (seatList: Omit<Seat, 'seat_id'>[]) => {
+  const addSeats = async (seatList: Omit<Seat, 'id'>[]) => {
     try {
       const newSeats = await bulkCreateSeats(seatList);
       setSeats(prev => [...prev, ...newSeats]);

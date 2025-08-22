@@ -107,7 +107,7 @@ const Analytics = () => {
       const teamUtilization = allTeams.map(team => {
         const teamEmployees = employees.filter(e => e.team === team);
         const teamAssignments = assignments.filter(a => 
-          teamEmployees.some(emp => emp.employee_id === a.employee_id)
+          teamEmployees.some(emp => emp.id === a.employee_id)
         );
         
         // Calculate actual utilization from assignments
@@ -145,7 +145,7 @@ const Analytics = () => {
       const deptMetrics = allDepts.map(dept => {
         const deptEmployees = employees.filter(e => e.department === dept);
         const deptAssignments = assignments.filter(a => 
-          deptEmployees.some(emp => emp.employee_id === a.employee_id)
+          deptEmployees.some(emp => emp.id === a.employee_id)
         );
         
         const avgUtilization = deptEmployees.length > 0

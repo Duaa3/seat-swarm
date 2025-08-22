@@ -30,7 +30,7 @@ export function useEmployees() {
     }
   };
 
-  const addEmployee = async (employee: Omit<Employee, 'employee_id'>) => {
+  const addEmployee = async (employee: Omit<Employee, 'id'>) => {
     try {
       const newEmployee = await createEmployee(employee);
       setEmployees(prev => [...prev, newEmployee]);
@@ -50,7 +50,7 @@ export function useEmployees() {
     }
   };
 
-  const addEmployees = async (employeeList: Omit<Employee, 'employee_id'>[]) => {
+  const addEmployees = async (employeeList: Omit<Employee, 'id'>[]) => {
     try {
       const newEmployees = await bulkCreateEmployees(employeeList);
       setEmployees(prev => [...prev, ...newEmployees]);
@@ -74,7 +74,7 @@ export function useEmployees() {
     try {
       const updatedEmployee = await updateEmployee(employeeId, updates);
       setEmployees(prev => 
-        prev.map(emp => emp.employee_id === employeeId ? updatedEmployee : emp)
+        prev.map(emp => emp.id === employeeId ? updatedEmployee : emp)
       );
       toast({
         title: "Success",
@@ -95,7 +95,7 @@ export function useEmployees() {
   const removeEmployee = async (employeeId: string) => {
     try {
       await deleteEmployee(employeeId);
-      setEmployees(prev => prev.filter(emp => emp.employee_id !== employeeId));
+      setEmployees(prev => prev.filter(emp => emp.id !== employeeId));
       toast({
         title: "Success",
         description: "Employee removed successfully"

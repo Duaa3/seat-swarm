@@ -27,7 +27,7 @@ export async function getEmployees(): Promise<Employee[]> {
   return data.map(dbEmployeeToEmployee);
 }
 
-export async function createEmployee(employee: Omit<Employee, 'employee_id'>): Promise<Employee> {
+export async function createEmployee(employee: Omit<Employee, 'id'>): Promise<Employee> {
   const dbEmployee = employeeToDbEmployee(employee) as DbEmployeeInsert;
   
   const { data, error } = await supabase
@@ -72,7 +72,7 @@ export async function deleteEmployee(employeeId: string): Promise<void> {
   }
 }
 
-export async function bulkCreateEmployees(employees: Omit<Employee, 'employee_id'>[]): Promise<Employee[]> {
+export async function bulkCreateEmployees(employees: Omit<Employee, 'id'>[]): Promise<Employee[]> {
   const dbEmployees = employees.map(emp => employeeToDbEmployee(emp) as DbEmployeeInsert);
   
   const { data, error } = await supabase
@@ -107,7 +107,7 @@ export async function getSeats(): Promise<Seat[]> {
   return data.map(dbSeatToSeat);
 }
 
-export async function createSeat(seat: Omit<Seat, 'seat_id'>): Promise<Seat> {
+export async function createSeat(seat: Omit<Seat, 'id'>): Promise<Seat> {
   const dbSeat = seatToDbSeat(seat) as DbSeatInsert;
   
   const { data, error } = await supabase
@@ -124,7 +124,7 @@ export async function createSeat(seat: Omit<Seat, 'seat_id'>): Promise<Seat> {
   return dbSeatToSeat(data);
 }
 
-export async function bulkCreateSeats(seats: Omit<Seat, 'seat_id'>[]): Promise<Seat[]> {
+export async function bulkCreateSeats(seats: Omit<Seat, 'id'>[]): Promise<Seat[]> {
   const dbSeats = seats.map(seat => seatToDbSeat(seat) as DbSeatInsert);
   
   const { data, error } = await supabase
@@ -238,24 +238,29 @@ export async function bulkSaveScheduleAssignments(assignments: Array<{
 
 function dbEmployeeToEmployee(dbEmployee: DbEmployee): Employee {
   return {
-    employee_id: dbEmployee.id,
+    id: dbEmployee.id,
     full_name: dbEmployee.full_name,
     team: dbEmployee.team,
     department: dbEmployee.department,
-    preferred_work_mode: (dbEmployee.preferred_work_mode as "hybrid" | "remote" | "office") || "hybrid",
+    preferred_work_mode: (dbEmployee.preferred_work_mode as "hybrid" | "remote" | "onsite") || "hybrid",
     needs_accessible: dbEmployee.needs_accessible || false,
     prefer_window: dbEmployee.prefer_window || false,
     preferred_zone: dbEmployee.preferred_zone || "ZoneA",
     onsite_ratio: Number(dbEmployee.onsite_ratio) || 0.5,
     project_count: dbEmployee.project_count || 1,
-    preferred_days: dbEmployee.preferred_days || []
+    preferred_days: dbEmployee.preferred_days || [],
+    priority_level: dbEmployee.priority_level || null,
+    client_site_ratio: dbEmployee.client_site_ratio || null,
+    commute_minutes: dbEmployee.commute_minutes || null,
+    availability_ratio: dbEmployee.availability_ratio || null,
+    extra: dbEmployee.extra || null
   };
 }
 
 function employeeToDbEmployee(employee: Partial<Employee>): Partial<DbEmployeeInsert> {
   const dbEmployee: any = {};
   
-  if (employee.employee_id) dbEmployee.id = employee.employee_id;
+  if (employee.id) dbEmployee.id = employee.id;
   if (employee.full_name) dbEmployee.full_name = employee.full_name;
   if (employee.team) dbEmployee.team = employee.team;
   if (employee.department) dbEmployee.department = employee.department;
@@ -264,15 +269,20 @@ function employeeToDbEmployee(employee: Partial<Employee>): Partial<DbEmployeeIn
   if (employee.prefer_window !== undefined) dbEmployee.prefer_window = employee.prefer_window;
   if (employee.preferred_zone) dbEmployee.preferred_zone = employee.preferred_zone;
   if (employee.onsite_ratio !== undefined) dbEmployee.onsite_ratio = employee.onsite_ratio;
-  if (employee.project_count) dbEmployee.project_count = employee.project_count;
+  if (employee.project_count !== undefined) dbEmployee.project_count = employee.project_count;
   if (employee.preferred_days) dbEmployee.preferred_days = employee.preferred_days;
+  if (employee.priority_level !== undefined) dbEmployee.priority_level = employee.priority_level;
+  if (employee.client_site_ratio !== undefined) dbEmployee.client_site_ratio = employee.client_site_ratio;
+  if (employee.commute_minutes !== undefined) dbEmployee.commute_minutes = employee.commute_minutes;
+  if (employee.availability_ratio !== undefined) dbEmployee.availability_ratio = employee.availability_ratio;
+  if (employee.extra !== undefined) dbEmployee.extra = employee.extra;
   
   return dbEmployee;
 }
 
 function dbSeatToSeat(dbSeat: DbSeat): Seat {
   return {
-    seat_id: dbSeat.id,
+    id: dbSeat.id,
     floor: dbSeat.floor,
     zone: dbSeat.zone,
     is_accessible: dbSeat.is_accessible || false,
@@ -285,7 +295,7 @@ function dbSeatToSeat(dbSeat: DbSeat): Seat {
 function seatToDbSeat(seat: Partial<Seat>): Partial<DbSeatInsert> {
   const dbSeat: any = {};
   
-  if (seat.seat_id) dbSeat.id = seat.seat_id;
+  if (seat.id) dbSeat.id = seat.id;
   if (seat.floor !== undefined) dbSeat.floor = seat.floor;
   if (seat.zone) dbSeat.zone = seat.zone;
   if (seat.is_accessible !== undefined) dbSeat.is_accessible = seat.is_accessible;

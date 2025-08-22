@@ -169,7 +169,7 @@ import { Employee, Seat } from '@/types/planner';
 
 export function toSupabaseEmployee(emp: Employee): FastAPIEmployee {
   return {
-    employee_id: emp.employee_id,
+    employee_id: emp.id,
     full_name: emp.full_name,
     department: emp.department,
     team: emp.team,
@@ -185,7 +185,7 @@ export function toSupabaseEmployee(emp: Employee): FastAPIEmployee {
 
 export function toSupabaseSeat(seat: Seat): FastAPISeat {
   return {
-    seat_id: seat.seat_id,
+    seat_id: seat.id,
     floor: seat.floor,
     zone: seat.zone,
     is_accessible: seat.is_accessible,

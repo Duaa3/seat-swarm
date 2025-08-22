@@ -27,7 +27,7 @@ export default function EmployeePortal() {
 
   useEffect(() => {
     if (user?.employee_id) {
-      const emp = MOCK_EMPLOYEES.find(e => e.employee_id === user.employee_id);
+      const emp = MOCK_EMPLOYEES.find(e => e.id === user.employee_id);
       if (emp) {
         setEmployee(emp);
         setPreferences({
@@ -209,7 +209,7 @@ export default function EmployeePortal() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Employee ID</p>
-                <p className="font-medium">{employee.employee_id}</p>
+                <p className="font-medium">{employee.id}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Team</p>

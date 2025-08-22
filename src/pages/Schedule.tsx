@@ -173,7 +173,7 @@ const SchedulePage = () => {
     
     DAYS.forEach(day => {
       schedule[day].forEach(empId => {
-        const employee = dbEmployees.find(e => e.employee_id === empId);
+        const employee = dbEmployees.find(e => e.id === empId);
         const seatId = assignments[day]?.[empId] || 'Unassigned';
         
         csvRows.push([

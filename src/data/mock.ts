@@ -1,21 +1,26 @@
 // ============= Enhanced Mock Data with Single Source of Truth =============
 
 export interface Employee {
-  employee_id: string;
+  id: string;
   full_name: string;
   team: string;
   department: string;
-  preferred_work_mode: "hybrid" | "remote" | "office";
+  preferred_work_mode: "hybrid" | "remote" | "onsite" | null;
   needs_accessible: boolean;
   prefer_window: boolean;
-  preferred_zone: string;
-  onsite_ratio: number;
-  project_count: number;
-  preferred_days: string[];
+  preferred_zone: string | null;
+  onsite_ratio: number | null;
+  project_count: number | null;
+  preferred_days: string[] | null;
+  priority_level?: number | null;
+  client_site_ratio?: number | null;
+  commute_minutes?: number | null;
+  availability_ratio?: number | null;
+  extra?: any;
 }
 
 export interface Seat {
-  seat_id: string;
+  id: string;
   floor: number;
   zone: string;
   is_accessible: boolean;
@@ -62,14 +67,14 @@ function generateEmployees(): Employee[] {
   const lastNames = ["Rahman", "Ahmed", "Chen", "Kim", "Garcia", "Wilson", "Petrov", "Hassan", "Thompson", "Silva", "Johnson", "Brown", "Patel", "Martinez", "Davis", "Ali", "Khan", "Lee", "Miller", "Jones", "Smith", "Lopez", "Clark", "Nguyen", "Taylor", "White", "Anderson", "Williams", "Jackson", "Martin"];
   const teams = ["Network", "CoreOps", "Design", "Sales", "Data", "QA", "Security", "DevOps", "Product", "Support"];
   const departments = ["Core", "GoToMarket", "Operations"];
-  const workModes: ("hybrid" | "remote" | "office")[] = ["hybrid", "remote", "office"];
+  const workModes: ("hybrid" | "remote" | "onsite")[] = ["hybrid", "remote", "onsite"];
   const zones = ["ZoneA", "ZoneB", "ZoneC"];
   const daysCombos = [["Mon","Wed"], ["Tue","Thu"], ["Mon","Fri"], ["Mon","Tue","Wed"], ["Wed","Thu"], ["Fri"], ["Mon","Wed","Fri"], ["Tue","Thu"], ["Mon","Tue","Wed","Thu"], ["Wed","Thu","Fri"]];
 
   return Array.from({ length: 350 }, (_, i) => {
     const empId = String(i + 1).padStart(3, '0');
     return {
-      employee_id: `E${empId}`,
+      id: `E${empId}`,
       full_name: `${firstNames[i % firstNames.length]} ${lastNames[Math.floor(i / firstNames.length) % lastNames.length]}`,
       team: teams[i % teams.length],
       department: departments[i % departments.length],
@@ -80,6 +85,11 @@ function generateEmployees(): Employee[] {
       onsite_ratio: Math.round((0.3 + Math.random() * 0.6) * 100) / 100, // 0.3-0.9
       project_count: Math.floor(Math.random() * 6) + 1, // 1-6 projects
       preferred_days: daysCombos[i % daysCombos.length],
+      priority_level: Math.floor(Math.random() * 5) + 1,
+      client_site_ratio: Math.random() * 0.5,
+      commute_minutes: Math.floor(Math.random() * 60) + 10,
+      availability_ratio: 0.8 + Math.random() * 0.2,
+      extra: null
     };
   });
 }
@@ -99,7 +109,7 @@ function generateSeats(): Seat[] {
     const zone = zones[i % zones.length];
     
     seats.push({
-      seat_id: `F1-S${seatNum}`,
+      id: `F1-S${seatNum}`,
       floor: 1,
       zone,
       is_accessible: i < 12, // First 12 seats are accessible
@@ -117,7 +127,7 @@ function generateSeats(): Seat[] {
     const zone = zones[i % zones.length];
     
     seats.push({
-      seat_id: `F2-S${seatNum}`,
+      id: `F2-S${seatNum}`,
       floor: 2,
       zone,
       is_accessible: i < 10, // First 10 seats are accessible
