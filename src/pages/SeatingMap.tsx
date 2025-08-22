@@ -349,6 +349,30 @@ const SeatingMapPage = () => {
           </CardContent>
         </Card>
       ) : (
+        <div className="space-y-4">
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h3 className="font-medium mb-2">Debug Information</h3>
+            <div className="text-sm space-y-1">
+              <div>Selected Day: {selectedDay}</div>
+              <div>Scheduled Employees: {(schedule[selectedDay] || []).length}</div>
+              <div>Seat Assignments: {Object.keys(seatAssignments[selectedDay] || {}).length}</div>
+              <div>Total Seats: {legacySeats.length}</div>
+              <div>Total Employees: {legacyEmployees.length}</div>
+            </div>
+          </div>
+          <SeatingMap 
+            day={selectedDay}
+            assignments={seatAssignments[selectedDay] || {}}
+            seats={legacySeats}
+            employees={legacyEmployees}
+            teamColor={(team: string) => {
+              const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA"];
+              const index = teams.indexOf(team);
+              return `team-bg-${(index % 8) + 1}`;
+            }}
+          />
+        </div>
+      ) : (
         <SeatingMap 
           day={selectedDay}
           assignments={seatAssignments[selectedDay] || {}}
@@ -360,7 +384,7 @@ const SeatingMapPage = () => {
             return `team-bg-${(index % 8) + 1}`;
           }}
         />
-      )}
+      )})
 
       {/* Team Legend for assigned seats */}
       {dayAssignments.length > 0 && (

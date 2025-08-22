@@ -19,9 +19,28 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
 
   const floors = React.useMemo(() => Array.from(new Set(seats.map((s) => s.floor))).sort(), [seats]);
 
+  console.log('SeatingMap Debug:', {
+    day,
+    assignmentsCount: Object.keys(assignments || {}).length,
+    assignments: assignments,
+    seatsCount: seats.length,
+    employeesCount: employees.length,
+    floors
+  });
+
   const renderFloor = (floor: number) => {
     const floorSeats = seats.filter((s) => s.floor === floor);
-    const assignedSeats = Object.entries(assignments || {}).filter(([, seatId]) => seatById[seatId]?.floor === floor);
+    const assignedSeats = Object.entries(assignments || {}).filter(([, seatId]) => {
+      const seat = seats.find(s => s.id === seatId);
+      return seat?.floor === floor;
+    });
+
+    console.log(`Floor ${floor} Debug:`, {
+      floorSeatsCount: floorSeats.length,
+      assignedSeatsCount: assignedSeats.length,
+      sampleFloorSeats: floorSeats.slice(0, 3),
+      sampleAssignments: assignedSeats.slice(0, 3)
+    });
 
     return (
       <Card key={floor} className="shadow-glow">
@@ -32,22 +51,24 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-8 gap-2">
+          <div className="grid grid-cols-8 gap-2 min-h-[200px]">
             {floorSeats.map((seat) => {
               const empId = Object.keys(assignments || {}).find((eid) => assignments[eid] === seat.id);
               const emp = empId ? empById[empId] : null;
               
+              const seatLabel = seat.id.includes('-') ? seat.id.split("-")[1] || seat.id.slice(-2) : seat.id.slice(-2);
+              
               return (
                 <div
                   key={seat.id}
-                  className={`aspect-square rounded border-2 p-1 text-xs flex items-center justify-center text-center ${
+                  className={`aspect-square rounded-lg border-2 p-1 text-xs flex items-center justify-center text-center transition-all hover:scale-105 ${
                     emp 
-                      ? `${teamColor(emp.team)} text-white border-transparent` 
+                      ? `${teamColor(emp.team)} text-white border-transparent shadow-md` 
                       : "bg-muted border-border hover:bg-muted/80"
                   }`}
-                  title={emp ? `${emp.name} (${emp.team})` : `Seat ${seat.id}`}
+                  title={emp ? `${emp.name} (${emp.team}) - Seat ${seatLabel}` : `Seat ${seatLabel} - Available`}
                 >
-                  {emp ? emp.name.split(" ")[0] : seat.id.split("-")[1]}
+                  {emp ? emp.name.split(" ")[0] : seatLabel}
                 </div>
               );
             })}
@@ -65,9 +86,28 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
           {Object.keys(assignments || {}).length} total assignments
         </Badge>
       </div>
-      <div className="grid gap-6 md:grid-cols-2">
-        {floors.map(renderFloor)}
-      </div>
+      
+      {floors.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">No seating data available</div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : Object.keys(assignments || {}).length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">No seat assignments for {day}</div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {floors.map(renderFloor)}
+        </div>
+      )}
     </div>
   );
 };
