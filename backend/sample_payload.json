@@ -1,0 +1,79 @@
+{
+  "employees": [
+    {
+      "employee_id": "emp001",
+      "full_name": "Alice Johnson",
+      "department": "Engineering",
+      "team": "Frontend",
+      "priority_level": 1.2,
+      "preferred_work_mode": "hybrid",
+      "needs_accessible": true,
+      "prefer_window": false,
+      "preferred_zone": "ZoneA",
+      "preferred_days": ["Mon", "Wed", "Fri"],
+      "client_site_ratio": 0.1,
+      "commute_minutes": 25.0,
+      "availability_ratio": 0.9,
+      "onsite_ratio": 0.6,
+      "project_count": 2.0
+    },
+    {
+      "employee_id": "emp002",
+      "full_name": "Bob Smith",
+      "department": "Engineering", 
+      "team": "Backend",
+      "priority_level": 1.0,
+      "preferred_work_mode": "office",
+      "needs_accessible": false,
+      "prefer_window": true,
+      "preferred_zone": "ZoneB",
+      "preferred_days": ["Tue", "Thu"],
+      "client_site_ratio": 0.2,
+      "commute_minutes": 40.0,
+      "availability_ratio": 1.0,
+      "onsite_ratio": 0.8,
+      "project_count": 1.0
+    }
+  ],
+  "seats": [
+    {
+      "seat_id": "seat001",
+      "floor": 1,
+      "zone": "ZoneA",
+      "is_accessible": true,
+      "is_window": false,
+      "x": 1,
+      "y": 1
+    },
+    {
+      "seat_id": "seat002", 
+      "floor": 1,
+      "zone": "ZoneB",
+      "is_accessible": false,
+      "is_window": true,
+      "x": 2,
+      "y": 1
+    }
+  ],
+  "capacity_by_day": {
+    "Mon": 2,
+    "Tue": 2,
+    "Wed": 1,
+    "Thu": 2,
+    "Fri": 1
+  },
+  "dept_day_cap_pct": 0.60,
+  "together_teams": [["Frontend"], ["Backend"]],
+  "team_together_mode": "soft",
+  "weights": {
+    "w_seat_satisfaction": 3.0,
+    "w_onsite_ratio": 2.0,
+    "w_project_penalty": -0.05,
+    "w_window": 1.0,
+    "w_accessible": 1.5,
+    "w_zone": 0.5,
+    "w_zone_cohesion": 0.75
+  },
+  "solver": "hungarian",
+  "days": ["Mon", "Tue", "Wed", "Thu", "Fri"]
+}
