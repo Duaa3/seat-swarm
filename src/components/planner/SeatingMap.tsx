@@ -105,52 +105,58 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
         </div>
 
         {/* Seating Layout */}
-        <div className="space-y-4">
-          {zoneRows.map(({ zone, rows: zoneRowData }) => (
-            <div key={zone} className={`rounded-xl p-4 border-2 ${getZoneColor(zone)}`}>
-              <div className="space-y-3">
-                {zoneRowData.map((row, rowIndex) => (
-                  <div key={rowIndex} className="flex justify-center gap-2">
-                    {row.map((seat) => {
-                      const empId = Object.keys(assignments || {}).find((eid) => assignments[eid] === seat.id);
-                      const emp = empId ? empById[empId] : null;
-                      const seatNum = parseInt(seat.id.replace(/[^0-9]/g, ''));
-                      const isWindow = windowSeats.includes(seat);
-                      const isAccessible = accessibleSeats.includes(seat);
-                      
-                      return (
-                        <div key={seat.id} className="relative flex flex-col items-center">
-                          <div className="text-xs text-gray-500 mb-1">
-                            S{seatNum.toString().padStart(2, '0')}
-                          </div>
-                          <div
-                            className={`w-12 h-12 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center text-xs font-medium transition-all hover:scale-105 relative ${
-                              emp 
-                                ? `${teamColor(emp.team)} text-white border-solid shadow-md` 
-                                : "bg-white hover:bg-gray-50"
-                            }`}
-                            title={emp ? `${emp.name} (${emp.team})` : `Available`}
-                          >
-                            {emp ? emp.name.charAt(0) : ''}
-                            
-                            {/* Feature indicators */}
-                            <div className="absolute -top-1 -right-1 flex flex-col gap-1">
-                              {isWindow && (
-                                <div className="w-3 h-3 bg-yellow-400 rounded-full" title="Window seat" />
-                              )}
-                              {isAccessible && (
-                                <div className="w-3 h-3 bg-teal-500 rounded-full" title="Accessible seat" />
-                              )}
-                            </div>
-                          </div>
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className="space-y-3">
+            {rows.map((row, rowIndex) => (
+              <div key={rowIndex} className="flex justify-center gap-3">
+                {row.map((seat) => {
+                  const empId = Object.keys(assignments || {}).find((eid) => assignments[eid] === seat.id);
+                  const emp = empId ? empById[empId] : null;
+                  const seatNum = parseInt(seat.id.replace(/[^0-9]/g, ''));
+                  const isWindow = windowSeats.includes(seat);
+                  const isAccessible = accessibleSeats.includes(seat);
+                  const zone = getZoneForSeat(seat.id, floor);
+                  
+                  const getZoneBg = (zone: string): string => {
+                    switch (zone) {
+                      case 'ZoneA': return 'bg-teal-50';
+                      case 'ZoneB': return 'bg-gray-50';
+                      case 'ZoneC': return 'bg-yellow-50';
+                      default: return 'bg-gray-50';
+                    }
+                  };
+                  
+                  return (
+                    <div key={seat.id} className={`relative flex flex-col items-center p-2 rounded-lg ${getZoneBg(zone)}`}>
+                      <div className="text-xs text-gray-500 mb-1 font-medium">
+                        S{seatNum.toString().padStart(2, '0')}
+                      </div>
+                      <div
+                        className={`w-14 h-14 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-xs font-medium transition-all hover:scale-105 relative ${
+                          emp 
+                            ? `${teamColor(emp.team)} text-white border-solid shadow-lg` 
+                            : "bg-white hover:bg-gray-100"
+                        }`}
+                        title={emp ? `${emp.name} (${emp.team}) - ${zone}` : `Available - ${zone}`}
+                      >
+                        {emp ? emp.name.charAt(0).toUpperCase() : ''}
+                        
+                        {/* Feature indicators */}
+                        <div className="absolute -top-1 -right-1 flex flex-col gap-1">
+                          {isWindow && (
+                            <div className="w-3 h-3 bg-yellow-400 rounded-full border border-white" title="Window seat" />
+                          )}
+                          {isAccessible && (
+                            <div className="w-3 h-3 bg-teal-500 rounded-full border border-white" title="Accessible seat" />
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Floor Statistics */}
