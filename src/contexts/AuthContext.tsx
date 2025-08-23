@@ -73,6 +73,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setAuthState({ user, isAuthenticated: true });
             } else {
               console.log('Failed to create profile:', createError);
+              // Still set authenticated to avoid infinite loading
+              setAuthState({ 
+                user: {
+                  id: session.user.id,
+                  name: session.user.email || '',
+                  email: session.user.email || '',
+                  role: 'employee',
+                  employee_id: undefined
+                }, 
+                isAuthenticated: true 
+              });
             }
           }
         } else {
