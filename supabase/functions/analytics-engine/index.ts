@@ -283,8 +283,8 @@ class AnalyticsAI {
       // Fetch all relevant data
       const [assignments, employees, seats] = await Promise.all([
         this.supabase.from('schedule_assignments').select('*').order('assignment_date', { ascending: false }).limit(1000),
-        this.supabase.from('employees').select('*').eq('is_active', true),
-        this.supabase.from('seats').select('*').eq('is_available', true)
+        this.supabase.from('employees').select('*'),
+        this.supabase.from('seats').select('*')
       ]);
 
       if (assignments.error) throw assignments.error;
