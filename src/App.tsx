@@ -10,6 +10,7 @@ import SchedulePage from "./pages/Schedule";
 import SeatingMapPage from "./pages/SeatingMap";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import Constraints from "./pages/Constraints";
 import NotFound from "./pages/NotFound";
 
 // Create QueryClient instance
@@ -53,6 +54,11 @@ function AppContent() {
       <Route path="/settings" element={
         <Layout>
           <Settings />
+        </Layout>
+      } />
+      <Route path="/constraints" element={
+        <Layout>
+          <Constraints />
         </Layout>
       } />
       <Route path="*" element={<NotFound />} />

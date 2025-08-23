@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarDays, Settings, MapPin, BarChart3, Home } from "lucide-react";
+import { CalendarDays, Settings, MapPin, BarChart3, Home, Sliders } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -18,6 +18,7 @@ const navigationItems = [
   { title: "Schedule", url: "/schedule", icon: CalendarDays },
   { title: "Seating Map", url: "/seating", icon: MapPin },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Constraints", url: "/constraints", icon: Sliders },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
