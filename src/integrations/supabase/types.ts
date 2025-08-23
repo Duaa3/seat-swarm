@@ -59,6 +59,45 @@ export type Database = {
         }
         Relationships: []
       }
+      assignment_changes: {
+        Row: {
+          change_reason: string | null
+          change_type: string
+          changed_by: string | null
+          created_at: string | null
+          day_name: string
+          employee_id: string
+          id: string
+          new_seat_id: string | null
+          old_seat_id: string | null
+          schedule_id: string
+        }
+        Insert: {
+          change_reason?: string | null
+          change_type: string
+          changed_by?: string | null
+          created_at?: string | null
+          day_name: string
+          employee_id: string
+          id?: string
+          new_seat_id?: string | null
+          old_seat_id?: string | null
+          schedule_id: string
+        }
+        Update: {
+          change_reason?: string | null
+          change_type?: string
+          changed_by?: string | null
+          created_at?: string | null
+          day_name?: string
+          employee_id?: string
+          id?: string
+          new_seat_id?: string | null
+          old_seat_id?: string | null
+          schedule_id?: string
+        }
+        Relationships: []
+      }
       assignments: {
         Row: {
           created_at: string | null
@@ -147,6 +186,78 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_attendance: {
+        Row: {
+          check_in_time: string | null
+          check_out_time: string | null
+          created_at: string | null
+          date: string
+          employee_id: string
+          id: string
+          location: string
+          seat_id: string | null
+        }
+        Insert: {
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string | null
+          date: string
+          employee_id: string
+          id?: string
+          location: string
+          seat_id?: string | null
+        }
+        Update: {
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string | null
+          date?: string
+          employee_id?: string
+          id?: string
+          location?: string
+          seat_id?: string | null
+        }
+        Relationships: []
+      }
+      employee_constraints: {
+        Row: {
+          avoid_days: string[] | null
+          created_at: string | null
+          employee_id: string
+          id: string
+          max_weekly_office_days: number | null
+          needs_accessible_seat: boolean | null
+          preferred_days: string[] | null
+          preferred_floor: number | null
+          preferred_zone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avoid_days?: string[] | null
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          max_weekly_office_days?: number | null
+          needs_accessible_seat?: boolean | null
+          preferred_days?: string[] | null
+          preferred_floor?: number | null
+          preferred_zone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avoid_days?: string[] | null
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          max_weekly_office_days?: number | null
+          needs_accessible_seat?: boolean | null
+          preferred_days?: string[] | null
+          preferred_floor?: number | null
+          preferred_zone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           availability_ratio: number | null
@@ -206,6 +317,42 @@ export type Database = {
           priority_level?: number | null
           project_count?: number | null
           team?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      global_constraints: {
+        Row: {
+          allow_team_splitting: boolean
+          created_at: string | null
+          floor_1_capacity: number
+          floor_2_capacity: number
+          id: string
+          max_client_site_ratio: number
+          max_consecutive_office_days: number
+          min_client_site_ratio: number
+          updated_at: string | null
+        }
+        Insert: {
+          allow_team_splitting?: boolean
+          created_at?: string | null
+          floor_1_capacity?: number
+          floor_2_capacity?: number
+          id?: string
+          max_client_site_ratio?: number
+          max_consecutive_office_days?: number
+          min_client_site_ratio?: number
+          updated_at?: string | null
+        }
+        Update: {
+          allow_team_splitting?: boolean
+          created_at?: string | null
+          floor_1_capacity?: number
+          floor_2_capacity?: number
+          id?: string
+          max_client_site_ratio?: number
+          max_consecutive_office_days?: number
+          min_client_site_ratio?: number
           updated_at?: string | null
         }
         Relationships: []
@@ -429,6 +576,8 @@ export type Database = {
           created_at: string | null
           id: string
           meta: Json | null
+          published_at: string | null
+          published_by: string | null
           status: string
           updated_at: string | null
           week_start: string
@@ -437,6 +586,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           meta?: Json | null
+          published_at?: string | null
+          published_by?: string | null
           status?: string
           updated_at?: string | null
           week_start: string
@@ -445,11 +596,54 @@ export type Database = {
           created_at?: string | null
           id?: string
           meta?: Json | null
+          published_at?: string | null
+          published_by?: string | null
           status?: string
           updated_at?: string | null
           week_start?: string
         }
         Relationships: []
+      }
+      seat_locks: {
+        Row: {
+          created_at: string | null
+          employee_id: string
+          end_date: string | null
+          id: string
+          lock_type: string
+          reason: string | null
+          seat_id: string
+          start_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id: string
+          end_date?: string | null
+          id?: string
+          lock_type: string
+          reason?: string | null
+          seat_id: string
+          start_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string
+          end_date?: string | null
+          id?: string
+          lock_type?: string
+          reason?: string | null
+          seat_id?: string
+          start_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seat_locks_seat_id_fkey"
+            columns: ["seat_id"]
+            isOneToOne: false
+            referencedRelation: "seats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       seats: {
         Row: {
@@ -517,6 +711,42 @@ export type Database = {
           members_present?: number
           seating_arrangement?: Json
           team_name?: string
+        }
+        Relationships: []
+      }
+      team_constraints: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_members_per_day: number | null
+          min_copresence_ratio: number | null
+          prefer_adjacent_seats: boolean
+          prefer_same_floor: boolean
+          preferred_days: string[] | null
+          team_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_members_per_day?: number | null
+          min_copresence_ratio?: number | null
+          prefer_adjacent_seats?: boolean
+          prefer_same_floor?: boolean
+          preferred_days?: string[] | null
+          team_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_members_per_day?: number | null
+          min_copresence_ratio?: number | null
+          prefer_adjacent_seats?: boolean
+          prefer_same_floor?: boolean
+          preferred_days?: string[] | null
+          team_name?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
