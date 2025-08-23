@@ -29,13 +29,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           // Fetch user profile with role
           try {
-            const { data: profile } = await supabase
+            const { data: profile, error: profileError } = await supabase
               .from('profiles')
               .select('id, full_name, role')
               .eq('id', session.user.id)
               .maybeSingle();
 
-            if (profile) {
+            if (!profileError && profile) {
               const user: User = {
                 id: profile.id,
                 name: profile.full_name || session.user.email || '',
@@ -44,9 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 employee_id: undefined
               };
               setAuthState({ user, isAuthenticated: true });
-            } else {
+            } else if (!profile) {
               // Create profile with default role
-              await supabase
+              const { error: insertError } = await supabase
                 .from('profiles')
                 .insert([
                   {
@@ -56,6 +56,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   }
                 ]);
 
+              const user: User = {
+                id: session.user.id,
+                name: session.user.email || '',
+                email: session.user.email || '',
+                role: 'employee',
+                employee_id: undefined
+              };
+              setAuthState({ user, isAuthenticated: true });
+            } else {
+              // Profile error - use fallback
               const user: User = {
                 id: session.user.id,
                 name: session.user.email || '',
