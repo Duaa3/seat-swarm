@@ -55,25 +55,25 @@ All colors MUST be HSL.
       linear-gradient(135deg, hsl(var(--primary)), hsl(266 75% 45%));
     --shadow-elevated: 0 12px 30px -12px hsl(var(--primary) / 0.35);
 
-    /* Enhanced team palette with vibrant, accessible colors */
-    --team-1: 217 91% 60%;  /* Blue - Network */
-    --team-2: 142 71% 45%;  /* Green - CoreOps */
-    --team-3: 280 100% 70%; /* Purple - Design */
-    --team-4: 25 95% 53%;   /* Orange - Sales */
-    --team-5: 200 98% 39%;  /* Cyan - Ops */
-    --team-6: 262 83% 58%;  /* Violet - Data */
-    --team-7: 350 89% 60%;  /* Pink - QA */
-    --team-8: 160 60% 45%;  /* Teal - Other (replaced yellow) */
+    /* Enhanced team palette with vibrant, accessible colors - no white/light colors */
+    --team-1: 217 91% 50%;  /* Blue - Network */
+    --team-2: 142 71% 40%;  /* Green - CoreOps */
+    --team-3: 280 100% 45%; /* Purple - Design (darkened) */
+    --team-4: 25 95% 48%;   /* Orange - Sales */
+    --team-5: 200 98% 35%;  /* Cyan - Ops */
+    --team-6: 262 83% 48%;  /* Violet - Data */
+    --team-7: 350 89% 50%;  /* Pink - QA */
+    --team-8: 160 60% 40%;  /* Teal - Other */
 
-    /* Team gradient variants */
-    --team-gradient-1: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 50%));
-    --team-gradient-2: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 71% 35%));
-    --team-gradient-3: linear-gradient(135deg, hsl(280 100% 70%), hsl(280 100% 60%));
-    --team-gradient-4: linear-gradient(135deg, hsl(25 95% 53%), hsl(25 95% 43%));
-    --team-gradient-5: linear-gradient(135deg, hsl(200 98% 39%), hsl(200 98% 29%));
-    --team-gradient-6: linear-gradient(135deg, hsl(262 83% 58%), hsl(262 83% 48%));
-    --team-gradient-7: linear-gradient(135deg, hsl(350 89% 60%), hsl(350 89% 50%));
-    --team-gradient-8: linear-gradient(135deg, hsl(160 60% 45%), hsl(160 60% 35%));
+    /* Team gradient variants - all with good contrast */
+    --team-gradient-1: linear-gradient(135deg, hsl(217 91% 50%), hsl(217 91% 40%));
+    --team-gradient-2: linear-gradient(135deg, hsl(142 71% 40%), hsl(142 71% 30%));
+    --team-gradient-3: linear-gradient(135deg, hsl(280 100% 45%), hsl(280 100% 35%));
+    --team-gradient-4: linear-gradient(135deg, hsl(25 95% 48%), hsl(25 95% 38%));
+    --team-gradient-5: linear-gradient(135deg, hsl(200 98% 35%), hsl(200 98% 25%));
+    --team-gradient-6: linear-gradient(135deg, hsl(262 83% 48%), hsl(262 83% 38%));
+    --team-gradient-7: linear-gradient(135deg, hsl(350 89% 50%), hsl(350 89% 40%));
+    --team-gradient-8: linear-gradient(135deg, hsl(160 60% 40%), hsl(160 60% 30%));
     
   }
 
