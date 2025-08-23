@@ -556,7 +556,7 @@ export type Database = {
         }[]
       }
       get_user_role: {
-        Args: { user_id?: string }
+        Args: Record<PropertyKey, never> | { user_id?: string }
         Returns: string
       }
       week_schedule: {
