@@ -1,71 +1,113 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { User, AuthState } from '@/types/auth';
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string, role: 'admin' | 'employee') => boolean;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
+  signUp: (email: string, password: string, fullName: string, role: string) => Promise<{ error?: string }>;
+  logout: () => Promise<void>;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Mock users
-const MOCK_USERS: User[] = [
-  {
-    id: 'admin1',
-    name: 'Admin User',
-    email: 'admin@company.com',
-    role: 'admin'
-  },
-  {
-    id: 'emp1',
-    name: 'Aisha Johnson',
-    email: 'aisha@company.com',
-    role: 'employee',
-    employee_id: 'E001'
-  },
-  {
-    id: 'emp2',
-    name: 'Hilal Ahmed',
-    email: 'hilal@company.com',
-    role: 'employee',
-    employee_id: 'E002'
-  }
-];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false
   });
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for saved session
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
-      setAuthState({ user, isAuthenticated: true });
-    }
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Fetch user profile with role
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, full_name, role')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (profile) {
+            const user: User = {
+              id: profile.id,
+              name: profile.full_name || session.user.email || '',
+              email: session.user.email || '',
+              role: profile.role as 'admin' | 'manager' | 'employee',
+              employee_id: undefined
+            };
+            setAuthState({ user, isAuthenticated: true });
+          }
+        } else {
+          setAuthState({ user: null, isAuthenticated: false });
+        }
+        setLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      // Initial session will be handled by the auth state change listener
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = (email: string, password: string, role: 'admin' | 'employee'): boolean => {
-    // Mock login - in real app this would call an API
-    const user = MOCK_USERS.find(u => u.email === email && u.role === role);
-    
-    if (user && password === 'password') { // Simple mock password
-      setAuthState({ user, isAuthenticated: true });
-      localStorage.setItem('user', JSON.stringify(user));
-      return true;
+  const login = async (email: string, password: string): Promise<{ error?: string }> => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      return {};
+    } catch (error) {
+      return { error: 'An unexpected error occurred' };
     }
-    return false;
   };
 
-  const logout = () => {
-    setAuthState({ user: null, isAuthenticated: false });
-    localStorage.removeItem('user');
+  const signUp = async (email: string, password: string, fullName: string, role: string): Promise<{ error?: string }> => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: fullName,
+            role: role
+          }
+        }
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      return {};
+    } catch (error) {
+      return { error: 'An unexpected error occurred' };
+    }
+  };
+
+  const logout = async (): Promise<void> => {
+    await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ ...authState, login, logout }}>
+    <AuthContext.Provider value={{ ...authState, login, signUp, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -10,7 +10,7 @@ import SchedulePage from "./pages/Schedule";
 import SeatingMapPage from "./pages/SeatingMap";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
-import Login from "./pages/Login";
+import Auth from "./pages/Auth";
 import EmployeePortal from "./pages/EmployeePortal";
 import NotFound from "./pages/NotFound";
 
@@ -25,10 +25,14 @@ const queryClient = new QueryClient({
 });
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
   
   if (!isAuthenticated) {
-    return <Login />;
+    return <Auth />;
   }
   
   if (user && !allowedRoles.includes(user.role)) {
@@ -39,10 +43,14 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
 }
 
 function AppRoutes() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
   
   if (!isAuthenticated) {
-    return <Login />;
+    return <Auth />;
   }
   
   if (user?.role === 'employee') {
@@ -53,22 +61,22 @@ function AppRoutes() {
     <Layout>
       <Routes>
         <Route path="/" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin', 'manager']}>
             <Dashboard />
           </ProtectedRoute>
         } />
         <Route path="/schedule" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin', 'manager']}>
             <SchedulePage />
           </ProtectedRoute>
         } />
         <Route path="/seating" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin', 'manager']}>
             <SeatingMapPage />
           </ProtectedRoute>
         } />
         <Route path="/analytics" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin', 'manager']}>
             <Analytics />
           </ProtectedRoute>
         } />
@@ -77,6 +85,7 @@ function AppRoutes() {
             <Settings />
           </ProtectedRoute>
         } />
+        <Route path="/auth" element={<Auth />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
