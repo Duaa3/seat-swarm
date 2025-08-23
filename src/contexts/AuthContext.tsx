@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event, session) => {
         setSession(session);
         
+        
         if (session?.user) {
           // Fetch user profile with role
           const { data: profile } = await supabase
@@ -43,6 +44,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               employee_id: undefined
             };
             setAuthState({ user, isAuthenticated: true });
+          } else {
+            // If no profile exists, create one with default employee role
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert([
+                {
+                  id: session.user.id,
+                  full_name: session.user.email,
+                  role: 'employee'
+                }
+              ])
+              .select()
+              .single();
+
+            if (!createError && newProfile) {
+              const user: User = {
+                id: newProfile.id,
+                name: newProfile.full_name || session.user.email || '',
+                email: session.user.email || '',
+                role: newProfile.role as 'admin' | 'manager' | 'employee',
+                employee_id: undefined
+              };
+              setAuthState({ user, isAuthenticated: true });
+            }
           }
         } else {
           setAuthState({ user: null, isAuthenticated: false });
