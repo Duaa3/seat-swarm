@@ -1,38 +1,30 @@
 import React from "react";
-import CsvUploader from "@/components/planner/CsvUploader";
-import PlannerControls, { Weights } from "@/components/planner/PlannerControls";
 import CalendarView from "@/components/planner/CalendarView";
-import SeatingMap from "@/components/planner/SeatingMap";
-import WarningsBanner from "@/components/planner/WarningsBanner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { DAYS, DayKey, DayCapacities, Schedule, SeatAssignments, WarningItem, toLegacyEmployee, toLegacySeat } from "@/types/planner";
+import { DAYS, DayKey, DayCapacities, Schedule, toLegacyEmployee } from "@/types/planner";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useSeats } from "@/hooks/useSeats";
 import { useScheduleData } from "@/hooks/useScheduleData";
+import { Calendar, Users, MapPin, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   // Data hooks
   const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
   const { seats: dbSeats, loading: seatsLoading } = useSeats();
-  const { schedule, assignments, saveSchedule, saveSeatAssignments, clearSchedule } = useScheduleData();
+  const { schedule, saveSchedule } = useScheduleData();
 
-  // Controls
+  // Controls for schedule generation
   const [dayCaps, setDayCaps] = React.useState<DayCapacities>(() => ({ Mon: 90, Tue: 90, Wed: 90, Thu: 90, Fri: 90 }));
   const [deptCap, setDeptCap] = React.useState<number>(60);
-  const [clusterTeams, setClusterTeams] = React.useState<string[]>([]);
-  const [solver, setSolver] = React.useState<"greedy" | "hungarian">("greedy");
-  const [weights, setWeights] = React.useState<Weights>({ seatSatisfaction: 0.7, onsite: 0.6, projectPenalty: 0.4, zone: 0.5 });
   const [selectedDay, setSelectedDay] = React.useState<DayKey>("Wed");
-  const [warnings, setWarnings] = React.useState<WarningItem[]>([]);
 
-  // Convert database data to legacy format for compatibility with existing components
+  // Convert database data to legacy format for compatibility
   const employees = React.useMemo(() => 
     dbEmployees.map(toLegacyEmployee), [dbEmployees]);
-
-  const allSeats = React.useMemo(() => 
-    dbSeats.map(toLegacySeat), [dbSeats]);
 
   const allDepts = React.useMemo(() => 
     [...new Set(dbEmployees.map(emp => emp.department))], [dbEmployees]);
@@ -40,18 +32,14 @@ const Index = () => {
   const allTeams = React.useMemo(() => 
     [...new Set(dbEmployees.map(emp => emp.team))], [dbEmployees]);
 
-  const floor1Seats = React.useMemo(() => 
-    dbSeats.filter(s => s.floor === 1).map(toLegacySeat), [dbSeats]);
-  
-  const floor2Seats = React.useMemo(() => 
-    dbSeats.filter(s => s.floor === 2).map(toLegacySeat), [dbSeats]);
+  const totalSeats = React.useMemo(() => dbSeats.length, [dbSeats]);
 
-  const totalSeats = React.useMemo(() => allSeats.length, [allSeats]);
-
-  const teamClass = React.useCallback((team: string) => {
-    const idx = (allTeams.indexOf(team) % 8) + 1;
-    return `team-bg-${idx}`;
-  }, [allTeams]);
+  const stats = React.useMemo(() => ({
+    totalEmployees: employees.length,
+    totalSeats: dbSeats.length,
+    scheduledThisWeek: Object.values(schedule).flat().length,
+    activeTeams: allTeams.length,
+  }), [employees, dbSeats, schedule, allTeams]);
 
   async function generateSchedule() {
     if (employees.length === 0) {
@@ -88,11 +76,10 @@ const Index = () => {
     // Save schedule to database
     const today = new Date();
     const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay() + 1); // Start of current week (Monday)
+    weekStart.setDate(today.getDate() - today.getDay() + 1);
     
     try {
       await saveSchedule(next, dbEmployees, weekStart.toISOString().split('T')[0]);
-      setWarnings([]);
       toast({ title: "Schedule generated", description: "A draft plan was created and saved to database." });
     } catch (error) {
       toast({ 
@@ -103,185 +90,166 @@ const Index = () => {
     }
   }
 
-  async function assignSeatsForDay(day: DayKey) {
-    const ids = schedule[day];
-    if (!ids?.length) {
-      toast({ title: "No schedule", description: `No employees scheduled for ${day}.` });
-      return;
-    }
-
-    if (allSeats.length === 0) {
-      toast({ 
-        title: "No seats", 
-        description: "Please load seat data first.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Greedy seat assignment (group clustered teams together by floor when possible)
-    const dayAssign: Record<string, string> = {};
-
-    // Try place clustered teams on same floor
-    const clusteredIds = ids.filter((id) => clusterTeams.includes(employees.find((e) => e.id === id)?.team || ""));
-    const nonClusteredIds = ids.filter((id) => !clusteredIds.includes(id));
-
-    // Heuristic: choose floor with more free seats for clusters
-    const dayTotal = ids.length;
-    const floor1Cap = floor1Seats.length;
-    const floor2Cap = floor2Seats.length;
-
-    let f1Slots = Math.min(floor1Cap, Math.ceil(dayTotal / 2));
-    let f2Slots = Math.min(floor2Cap, dayTotal - f1Slots);
-
-    const placeList = (list: string[], seatsPool: string[]) => {
-      for (let i = 0; i < list.length && i < seatsPool.length; i++) {
-        dayAssign[list[i]] = seatsPool[i];
-      }
-      // remove used
-      return seatsPool.slice(list.length);
-    };
-
-    let f1Seats = floor1Seats.map((s) => s.id);
-    let f2Seats = floor2Seats.map((s) => s.id);
-
-    // Place clusters first on the larger slot floor
-    const f1First = f1Slots >= f2Slots;
-    if (f1First) {
-      f1Seats = placeList(clusteredIds, f1Seats);
-      f2Seats = placeList(nonClusteredIds, f2Seats);
-    } else {
-      f2Seats = placeList(clusteredIds, f2Seats);
-      f1Seats = placeList(nonClusteredIds, f1Seats);
-    }
-
-    // Fill remaining employees
-    const remaining = ids.filter((id) => !dayAssign[id]);
-    const allRemainingSeats = [...f1Seats, ...f2Seats];
-    for (let i = 0; i < remaining.length && i < allRemainingSeats.length; i++) {
-      dayAssign[remaining[i]] = allRemainingSeats[i];
-    }
-
-    // Save assignments to database
-    const today = new Date();
-    const dayIndex = DAYS.indexOf(day);
-    const assignmentDate = new Date(today);
-    assignmentDate.setDate(today.getDate() - today.getDay() + 1 + dayIndex);
-
-    try {
-      await saveSeatAssignments(dayAssign, day, dbSeats, dbEmployees, assignmentDate.toISOString().split('T')[0]);
-
-      // Generate warnings
-      const warns: WarningItem[] = [];
-      // Capacity per floor
-      const f1Assigned = Object.values(dayAssign).filter((sid) => sid.startsWith("F1")).length;
-      const f2Assigned = Object.values(dayAssign).filter((sid) => sid.startsWith("F2")).length;
-      if (f1Assigned > floor1Cap) warns.push({ day, rule: "Floor 1 capacity exceeded", severity: "error" });
-      if (f2Assigned > floor2Cap) warns.push({ day, rule: "Floor 2 capacity exceeded", severity: "error" });
-
-      // Cluster rule
-      for (const t of clusterTeams) {
-        const members = ids.filter((id) => employees.find((e) => e.id === id)?.team === t);
-        if (members.length > 1) {
-          const floors = new Set(members.map((id) => (dayAssign[id] || "").slice(0, 2)));
-          if (floors.size > 1) {
-            warns.push({ day, rule: "Cluster split across floors", details: `${t} team not seated together`, severity: "warn" });
-          }
-        }
-      }
-
-      setWarnings(warns);
-      toast({ title: "Seats assigned", description: `Assigned ${Object.keys(dayAssign).length} seats for ${day}.` });
-    } catch (error) {
-      toast({ 
-        title: "Error", 
-        description: "Failed to save seat assignments to database.",
-        variant: "destructive"
-      });
-    }
-  }
-
   const isDataLoaded = dbEmployees.length > 0 && dbSeats.length > 0;
   const isLoading = employeesLoading || seatsLoading;
 
+  const quickActions = [
+    { title: "Generate Schedule", action: generateSchedule, icon: Calendar, color: "bg-primary" },
+    { title: "View Seating Map", path: "/seating", icon: MapPin, color: "bg-accent" },
+    { title: "Analytics", path: "/analytics", icon: TrendingUp, color: "bg-secondary" },
+  ];
+
   return (
-    <div>
-      <header className="py-10">
-        <div className="container">
-          <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Smart Office Seating Planner</h1>
-              <p className="mt-2 text-muted-foreground max-w-2xl">Plan hybrid attendance, respect capacity and team rules, and visualize seat layouts across floors.</p>
-            </div>
-            <Button 
-              variant="hero" 
-              onClick={generateSchedule}
-              disabled={isLoading || !isDataLoaded}
-            >
-              Generate Schedule
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Smart Office Planner</h1>
+        <p className="text-muted-foreground mt-2">
+          Manage hybrid attendance and optimize office seating arrangements
+        </p>
+      </div>
 
-      <main className="container space-y-8 pb-12">
-        {isLoading && (
-          <Card className="border-dashed">
-            <CardContent className="pt-6 text-center">
-              <div className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                <span>Loading data automatically...</span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <CsvUploader 
-          onEmployeesLoaded={async (employees) => {
-            // This will be handled by the CSV uploader component 
-            // which should use the hooks to save to database
-          }}
-          onSeatsLoaded={async (seats) => {
-            // This will be handled by the CSV uploader component
-            // which should use the hooks to save to database
-          }}
-        />
-
-        <WarningsBanner warnings={warnings} />
-
-        {isDataLoaded && (
-          <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
-            <PlannerControls
-              dayCaps={dayCaps}
-              onDayCapChange={(day, v) => setDayCaps((s) => ({ ...s, [day]: v }))}
-              deptCap={deptCap}
-              onDeptCapChange={setDeptCap}
-              clusterTeams={clusterTeams}
-              onClusterTeamsChange={setClusterTeams}
-              solver={solver}
-              onSolverChange={setSolver}
-              weights={weights}
-              onWeightsChange={setWeights}
-              onGenerate={generateSchedule}
-              onAssignDay={() => assignSeatsForDay(selectedDay)}
-              selectedDay={selectedDay}
-              onSelectedDayChange={setSelectedDay}
-            />
-
-            <CalendarView schedule={schedule} employees={employees} selectedDay={selectedDay} />
-          </div>
-        )}
-
-        {isDataLoaded && (
-          <SeatingMap day={selectedDay} assignments={assignments[selectedDay]} seats={allSeats} employees={employees} teamColor={teamClass} />
-        )}
-
-        <Card>
-          <CardContent className="text-xs text-muted-foreground pt-6">
-            This system now uses Supabase for data persistence. Employee and seat data is stored in the database, and schedules/assignments are saved with AI training data for continuous improvement.
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="hover:shadow-glow transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalEmployees}</div>
+            <p className="text-xs text-muted-foreground">Active workforce</p>
           </CardContent>
         </Card>
-      </main>
+
+        <Card className="hover:shadow-glow transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Available Seats</CardTitle>
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalSeats}</div>
+            <p className="text-xs text-muted-foreground">Across 2 floors</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-glow transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Scheduled This Week</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.scheduledThisWeek}</div>
+            <p className="text-xs text-muted-foreground">Total assignments</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-glow transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Teams</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.activeTeams}</div>
+            <p className="text-xs text-muted-foreground">Different departments</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Quick Actions */}
+        <Card className="shadow-glow">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {quickActions.map((action) => (
+              <div key={action.title}>
+                {action.path ? (
+                  <Link to={action.path}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors">
+                      <div className={`p-2 rounded-md ${action.color}`}>
+                        <action.icon className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="font-medium">{action.title}</span>
+                    </div>
+                  </Link>
+                ) : (
+                  <Button 
+                    onClick={action.action} 
+                    disabled={isLoading || !isDataLoaded}
+                    variant="outline" 
+                    className="w-full justify-start h-auto p-3"
+                  >
+                    <div className={`p-2 rounded-md ${action.color} mr-3`}>
+                      <action.icon className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="font-medium">{action.title}</span>
+                  </Button>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Team Overview */}
+        <Card className="shadow-glow">
+          <CardHeader>
+            <CardTitle>Team Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {allTeams.map((team, index) => {
+                const teamSize = employees.filter(e => e.team === team).length;
+                const teamClass = `team-bg-${(index % 8) + 1}`;
+                return (
+                  <Badge key={team} variant="secondary" className={`${teamClass} text-white border-0`}>
+                    {team} ({teamSize})
+                  </Badge>
+                );
+              })}
+            </div>
+            <div className="text-xs text-muted-foreground mt-4">
+              {isLoading ? "Loading team data..." : 
+               allTeams.length > 0 ? "Teams are distributed across departments with varying hybrid schedules." :
+               "No team data available. Load employee data to see team distribution."
+              }
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Schedule View */}
+      {isDataLoaded && (
+        <Card className="shadow-glow">
+          <CardHeader>
+            <CardTitle>Current Schedule</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CalendarView schedule={schedule} employees={employees} selectedDay={selectedDay} />
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoading && (
+        <Card className="border-dashed">
+          <CardContent className="pt-6 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <span>Loading office data...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isDataLoaded && !isLoading && (
+        <Card className="border-dashed">
+          <CardContent className="pt-6 text-center">
+            <div className="text-muted-foreground">
+              Welcome to Smart Office Planner! This system uses database-stored employee and seat data for hybrid office management.
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

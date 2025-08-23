@@ -1,5 +1,7 @@
 import React from "react";
 import SeatingMap from "@/components/planner/SeatingMap";
+import PlannerControls, { Weights } from "@/components/planner/PlannerControls";
+import WarningsBanner from "@/components/planner/WarningsBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,17 +10,27 @@ import { toast } from "@/hooks/use-toast";
 import { 
   DAYS, 
   DayKey,
+  DayCapacities,
+  WarningItem,
   toLegacyEmployee,
   toLegacySeat
 } from "@/types/planner";
 import { useScheduleData } from "@/hooks/useScheduleData";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useSeats } from "@/hooks/useSeats";
-import { MapPin, Users, RefreshCw, Download, Loader2 } from "lucide-react";
+import { MapPin, Users, RefreshCw, Download, Loader2, Sliders } from "lucide-react";
 
 const SeatingMapPage = () => {
   const [selectedDay, setSelectedDay] = React.useState<DayKey>("Wed");
   const [assignLoading, setAssignLoading] = React.useState(false);
+  const [warnings, setWarnings] = React.useState<WarningItem[]>([]);
+  
+  // Planner controls state
+  const [dayCaps, setDayCaps] = React.useState<DayCapacities>(() => ({ Mon: 90, Tue: 90, Wed: 90, Thu: 90, Fri: 90 }));
+  const [deptCap, setDeptCap] = React.useState<number>(60);
+  const [clusterTeams, setClusterTeams] = React.useState<string[]>([]);
+  const [solver, setSolver] = React.useState<"greedy" | "hungarian">("greedy");
+  const [weights, setWeights] = React.useState<Weights>({ seatSatisfaction: 0.7, onsite: 0.6, projectPenalty: 0.4, zone: 0.5 });
   
   // Use real database data
   const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
@@ -28,6 +40,20 @@ const SeatingMapPage = () => {
   // Convert to legacy format for components
   const legacyEmployees = React.useMemo(() => dbEmployees.map(toLegacyEmployee), [dbEmployees]);
   const legacySeats = React.useMemo(() => dbSeats.map(toLegacySeat), [dbSeats]);
+  
+  const allDepts = React.useMemo(() => 
+    [...new Set(dbEmployees.map(emp => emp.department))], [dbEmployees]);
+  
+  const allTeams = React.useMemo(() => 
+    [...new Set(dbEmployees.map(emp => emp.team))], [dbEmployees]);
+
+  const floor1Seats = React.useMemo(() => 
+    dbSeats.filter(s => s.floor === 1).map(toLegacySeat), [dbSeats]);
+  
+  const floor2Seats = React.useMemo(() => 
+    dbSeats.filter(s => s.floor === 2).map(toLegacySeat), [dbSeats]);
+
+  const totalSeats = React.useMemo(() => legacySeats.length, [legacySeats]);
   
   const loading = employeesLoading || seatsLoading || scheduleLoading || assignLoading;
   const isDataLoaded = dbEmployees.length > 0 && dbSeats.length > 0;
@@ -92,21 +118,17 @@ const SeatingMapPage = () => {
     };
   }, [selectedDay, schedule, dayAssignments, legacySeats, dbSeats]);
 
-  const assignSeatsForDay = async () => {
-    const dayEmployees = schedule[selectedDay] || [];
-    if (dayEmployees.length === 0) {
-      toast({
-        title: "No employees scheduled",
-        description: `No employees are scheduled for ${selectedDay}. Generate a schedule first.`,
-        variant: "destructive"
-      });
+  async function assignSeatsForDay(day: DayKey) {
+    const ids = schedule[day];
+    if (!ids?.length) {
+      toast({ title: "No schedule", description: `No employees scheduled for ${day}.` });
       return;
     }
 
-    if (!isDataLoaded) {
-      toast({
-        title: "No data loaded", 
-        description: "Please load employee and seat data first.",
+    if (legacySeats.length === 0) {
+      toast({ 
+        title: "No seats", 
+        description: "Please load seat data first.",
         variant: "destructive"
       });
       return;
@@ -114,67 +136,95 @@ const SeatingMapPage = () => {
 
     try {
       setAssignLoading(true);
-      
-      // Use the advanced Supabase scheduler for seat assignment
-      const { supabaseClient, toSupabaseEmployee, toSupabaseSeat } = await import('@/lib/supabase-scheduler');
-      
-      const assignmentRequest = {
-        employees: dayEmployees.map(empId => {
-          const emp = dbEmployees.find(e => e.id === empId);
-          return emp ? toSupabaseEmployee(emp) : null;
-        }).filter(Boolean),
-        seats: dbSeats.map(seat => toSupabaseSeat(seat)),
-        weights: {
-          w_accessible: 2.0,
-          w_window: 1.5,
-          w_zone: 1.0,
-          w_zone_cohesion: 1.0
-        },
-        solver: 'greedy' as const
+
+      // Greedy seat assignment (group clustered teams together by floor when possible)
+      const dayAssign: Record<string, string> = {};
+
+      // Try place clustered teams on same floor
+      const clusteredIds = ids.filter((id) => clusterTeams.includes(legacyEmployees.find((e) => e.id === id)?.team || ""));
+      const nonClusteredIds = ids.filter((id) => !clusteredIds.includes(id));
+
+      // Heuristic: choose floor with more free seats for clusters
+      const dayTotal = ids.length;
+      const floor1Cap = floor1Seats.length;
+      const floor2Cap = floor2Seats.length;
+
+      let f1Slots = Math.min(floor1Cap, Math.ceil(dayTotal / 2));
+      let f2Slots = Math.min(floor2Cap, dayTotal - f1Slots);
+
+      const placeList = (list: string[], seatsPool: string[]) => {
+        for (let i = 0; i < list.length && i < seatsPool.length; i++) {
+          dayAssign[list[i]] = seatsPool[i];
+        }
+        // remove used
+        return seatsPool.slice(list.length);
       };
 
-      const assignmentResponse = await supabaseClient.assignSeats(assignmentRequest);
-      
-      // Convert response to the expected format
-      const dayAssign: Record<string, string> = {};
-      for (const assignment of assignmentResponse.assignments) {
-        dayAssign[assignment.employee_id] = assignment.seat_id;
+      let f1Seats = floor1Seats.map((s) => s.id);
+      let f2Seats = floor2Seats.map((s) => s.id);
+
+      // Place clusters first on the larger slot floor
+      const f1First = f1Slots >= f2Slots;
+      if (f1First) {
+        f1Seats = placeList(clusteredIds, f1Seats);
+        f2Seats = placeList(nonClusteredIds, f2Seats);
+      } else {
+        f2Seats = placeList(clusteredIds, f2Seats);
+        f1Seats = placeList(nonClusteredIds, f1Seats);
       }
 
-      // Calculate the assignment date correctly
-      const today = new Date();
-      const dayIndex = DAYS.indexOf(selectedDay);
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday of current week
-      const assignmentDate = new Date(startOfWeek);
-      assignmentDate.setDate(startOfWeek.getDate() + dayIndex);
+      // Fill remaining employees
+      const remaining = ids.filter((id) => !dayAssign[id]);
+      const allRemainingSeats = [...f1Seats, ...f2Seats];
+      for (let i = 0; i < remaining.length && i < allRemainingSeats.length; i++) {
+        dayAssign[remaining[i]] = allRemainingSeats[i];
+      }
 
-      await saveSeatAssignments(
-        dayAssign, 
-        selectedDay, 
-        dbSeats, 
-        dbEmployees, 
-        assignmentDate.toISOString().split('T')[0]
-      );
+      // Save assignments to database
+      const today = new Date();
+      const dayIndex = DAYS.indexOf(day);
+      const assignmentDate = new Date(today);
+      assignmentDate.setDate(today.getDate() - today.getDay() + 1 + dayIndex);
+
+      await saveSeatAssignments(dayAssign, day, dbSeats, dbEmployees, assignmentDate.toISOString().split('T')[0]);
+
+      // Generate warnings
+      const warns: WarningItem[] = [];
+      // Capacity per floor
+      const f1Assigned = Object.values(dayAssign).filter((sid) => sid.startsWith("F1")).length;
+      const f2Assigned = Object.values(dayAssign).filter((sid) => sid.startsWith("F2")).length;
+      if (f1Assigned > floor1Cap) warns.push({ day, rule: "Floor 1 capacity exceeded", severity: "error" });
+      if (f2Assigned > floor2Cap) warns.push({ day, rule: "Floor 2 capacity exceeded", severity: "error" });
+
+      // Cluster rule
+      for (const t of clusterTeams) {
+        const members = ids.filter((id) => legacyEmployees.find((e) => e.id === id)?.team === t);
+        if (members.length > 1) {
+          const floors = new Set(members.map((id) => (dayAssign[id] || "").slice(0, 2)));
+          if (floors.size > 1) {
+            warns.push({ day, rule: "Cluster split across floors", details: `${t} team not seated together`, severity: "warn" });
+          }
+        }
+      }
+
+      setWarnings(warns);
 
       // Refresh data to show updated assignments
-      await loadScheduleForWeek(startOfWeek.toISOString().split('T')[0]);
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay() + 1);
+      await loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
 
-      toast({
-        title: "Seats assigned successfully",
-        description: `Assigned ${Object.keys(dayAssign).length} seats for ${selectedDay}.`,
-      });
+      toast({ title: "Seats assigned", description: `Assigned ${Object.keys(dayAssign).length} seats for ${day}.` });
     } catch (error) {
-      console.error('Seat assignment error:', error);
-      toast({
-        title: "Error assigning seats",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive",
+      toast({ 
+        title: "Error", 
+        description: "Failed to assign seats.",
+        variant: "destructive"
       });
     } finally {
       setAssignLoading(false);
     }
-  };
+  }
 
   const handleRefreshData = () => {
     const today = new Date();
@@ -247,7 +297,7 @@ const SeatingMapPage = () => {
           <div className="flex gap-2">
             {(schedule[selectedDay]?.length || 0) > 0 && dayAssignments.length === 0 && (
               <Button 
-                onClick={assignSeatsForDay} 
+                onClick={() => assignSeatsForDay(selectedDay)} 
                 disabled={loading}
                 className="bg-gradient-primary hover:bg-gradient-primary/80"
               >
@@ -270,6 +320,43 @@ const SeatingMapPage = () => {
            </div>
         </div>
       </div>
+
+      {/* Planner Controls */}
+      <Card className="shadow-glow">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sliders className="h-5 w-5" />
+            Planning Controls
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PlannerControls
+            dayCaps={dayCaps}
+            onDayCapChange={(day, v) => setDayCaps((s) => ({ ...s, [day]: v }))}
+            deptCap={deptCap}
+            onDeptCapChange={setDeptCap}
+            clusterTeams={clusterTeams}
+            onClusterTeamsChange={setClusterTeams}
+            solver={solver}
+            onSolverChange={setSolver}
+            weights={weights}
+            onWeightsChange={setWeights}
+            onGenerate={() => {
+              toast({ 
+                title: "Generate from Schedule page", 
+                description: "Use the Schedule page to generate new schedules.",
+                variant: "destructive" 
+              });
+            }}
+            onAssignDay={() => assignSeatsForDay(selectedDay)}
+            selectedDay={selectedDay}
+            onSelectedDayChange={setSelectedDay}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Warnings */}
+      <WarningsBanner warnings={warnings} />
 
       {/* Day Stats */}
       <div className="grid gap-4 md:grid-cols-4">
