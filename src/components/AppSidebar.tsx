@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarDays, Settings, MapPin, BarChart3, Home, Sliders } from "lucide-react";
+import { CalendarDays, Settings, MapPin, BarChart3, Home, Sliders, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,

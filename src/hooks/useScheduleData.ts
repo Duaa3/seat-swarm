@@ -9,6 +9,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 export interface ScheduleMetadata {
+  scheduleId?: string;
   weekOf: string;
   totalScheduled: number;
   utilizationByDay: Record<DayKey, number>;
