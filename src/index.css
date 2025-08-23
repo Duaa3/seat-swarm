@@ -131,15 +131,47 @@ All colors MUST be HSL.
   .bg-gradient-primary { background-image: var(--gradient-primary); }
   .shadow-glow { box-shadow: var(--shadow-elevated); }
 
-  /* Team color utilities */
-  .team-bg-1 { background: var(--team-gradient-1); }
-  .team-bg-2 { background: var(--team-gradient-2); }
-  .team-bg-3 { background: var(--team-gradient-3); }
-  .team-bg-4 { background: var(--team-gradient-4); }
-  .team-bg-5 { background: var(--team-gradient-5); }
-  .team-bg-6 { background: var(--team-gradient-6); }
-  .team-bg-7 { background: var(--team-gradient-7); }
-  .team-bg-8 { background: var(--team-gradient-8); }
+  /* Team color utilities with better contrast */
+  .team-bg-1 { 
+    background: var(--team-gradient-1); 
+    color: white;
+    border-color: hsl(217 91% 40% / 0.5);
+  }
+  .team-bg-2 { 
+    background: var(--team-gradient-2); 
+    color: white;
+    border-color: hsl(142 71% 30% / 0.5);
+  }
+  .team-bg-3 { 
+    background: var(--team-gradient-3); 
+    color: white;
+    border-color: hsl(280 100% 50% / 0.5);
+  }
+  .team-bg-4 { 
+    background: var(--team-gradient-4); 
+    color: white;
+    border-color: hsl(25 95% 35% / 0.5);
+  }
+  .team-bg-5 { 
+    background: var(--team-gradient-5); 
+    color: white;
+    border-color: hsl(200 98% 25% / 0.5);
+  }
+  .team-bg-6 { 
+    background: var(--team-gradient-6); 
+    color: white;
+    border-color: hsl(262 83% 40% / 0.5);
+  }
+  .team-bg-7 { 
+    background: var(--team-gradient-7); 
+    color: white;
+    border-color: hsl(350 89% 40% / 0.5);
+  }
+  .team-bg-8 { 
+    background: var(--team-gradient-8); 
+    color: white;
+    border-color: hsl(160 60% 30% / 0.5);
+  }
 
   /* Seat animations and states */
   .seat-occupied {

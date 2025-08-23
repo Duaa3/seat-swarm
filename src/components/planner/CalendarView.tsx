@@ -60,7 +60,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, employees, select
                       <Badge
                         key={empId}
                         variant="secondary"
-                        className={`${getTeamColorClass(emp.team)} text-white border-0 text-xs hover:scale-105 transition-transform shadow-sm`}
+                        className={`${getTeamColorClass(emp.team)} border-0 text-xs hover:scale-105 transition-transform shadow-sm`}
                       >
                         {emp.name}
                       </Badge>

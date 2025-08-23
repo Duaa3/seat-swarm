@@ -181,7 +181,7 @@ const DragDropCalendar: React.FC<DragDropCalendarProps> = ({
                           key={empId}
                           draggable={!readOnly}
                           onDragStart={(e) => handleDragStart(e, empId, day)}
-                          className={`group relative ${getTeamColorClass(emp.team)} text-white border-0 text-xs hover:scale-105 transition-all shadow-sm rounded-lg px-3 py-2 ${
+                          className={`group relative ${getTeamColorClass(emp.team)} border-0 text-xs hover:scale-105 transition-all shadow-sm rounded-lg px-3 py-2 ${
                             !readOnly ? 'cursor-move' : 'cursor-default'
                           } ${draggedEmployee === empId ? 'opacity-50 scale-95' : ''}`}
                         >
