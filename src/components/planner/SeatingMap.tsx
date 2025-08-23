@@ -1,7 +1,9 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DayKey, LegacyEmployee, LegacySeat } from "@/types/planner";
+import { MapPin, Users, Star, Eye, ExternalLink, UserCheck } from "lucide-react";
 
 interface SeatingMapProps {
   day: DayKey;
@@ -148,44 +150,104 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
                       const isAccessible = accessibleSeats.includes(seat);
                       
                       return (
-                        <div key={seat.id} className="group relative">
-                          <div className="text-center mb-1">
-                            <span className="text-[10px] font-mono text-muted-foreground">
-                              {seatNum.toString().padStart(2, '0')}
-                            </span>
-                          </div>
-                          <div
-                            className={`relative w-16 h-16 rounded-2xl border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 cursor-pointer ${
-                              emp 
-                                ? `${teamColor(emp.team)} text-white border-white/30 shadow-lg hover:shadow-xl hover:scale-105 seat-occupied` 
-                                : "bg-gradient-to-br from-background to-muted/40 border-border/50 hover:from-muted/60 hover:to-muted/20 hover:border-primary/30 seat-available"
-                            }`}
-                            title={emp ? `${emp.name} (${emp.team})` : `Available seat`}
-                          >
-                            {emp ? (
-                              <div className="text-center">
-                                <div className="text-sm font-bold">{emp.name.charAt(0).toUpperCase()}</div>
-                                <div className="text-[8px] opacity-80 font-medium">{emp.team.slice(0, 3).toUpperCase()}</div>
+                        <TooltipProvider key={seat.id}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="group relative">
+                                <div className="text-center mb-1">
+                                  <span className="text-[10px] font-mono text-muted-foreground">
+                                    {seatNum.toString().padStart(2, '0')}
+                                  </span>
+                                </div>
+                                <div
+                                  className={`relative w-16 h-16 rounded-2xl border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 cursor-pointer ${
+                                    emp 
+                                      ? `${teamColor(emp.team)} text-white border-white/30 shadow-lg hover:shadow-xl hover:scale-105 seat-occupied` 
+                                      : "bg-gradient-to-br from-background to-muted/40 border-border/50 hover:from-muted/60 hover:to-muted/20 hover:border-primary/30 seat-available"
+                                  }`}
+                                >
+                                  {emp ? (
+                                    <div className="text-center">
+                                      <div className="text-sm font-bold">{emp.name.charAt(0).toUpperCase()}</div>
+                                      <div className="text-[8px] opacity-80 font-medium">{emp.team.slice(0, 3).toUpperCase()}</div>
+                                    </div>
+                                  ) : (
+                                    <div className="w-6 h-6 rounded-lg border-2 border-dashed border-current opacity-30"></div>
+                                  )}
+                                  
+                                  {/* Enhanced feature indicators */}
+                                  <div className="absolute -top-2 -right-2 flex flex-col gap-1">
+                                    {isWindow && (
+                                      <div className="w-5 h-5 bg-gradient-to-br from-amber-400 to-orange-400 rounded-full border-2 border-white shadow-md flex items-center justify-center" title="Window seat">
+                                        <ExternalLink className="w-2 h-2 text-white" />
+                                      </div>
+                                    )}
+                                    {isAccessible && (
+                                      <div className="w-5 h-5 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-white shadow-md flex items-center justify-center" title="Accessible seat">
+                                        <UserCheck className="w-2 h-2 text-white" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                            ) : (
-                              <div className="w-6 h-6 rounded-lg border-2 border-dashed border-current opacity-30"></div>
-                            )}
-                            
-                            {/* Enhanced feature indicators */}
-                            <div className="absolute -top-2 -right-2 flex flex-col gap-1">
-                              {isWindow && (
-                                <div className="w-5 h-5 bg-gradient-to-br from-amber-400 to-orange-400 rounded-full border-2 border-white shadow-md flex items-center justify-center" title="Window seat">
-                                  <span className="text-[8px] text-white">🪟</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-sm p-4 bg-background/95 backdrop-blur-sm border border-border/50 shadow-lg">
+                              <div className="space-y-3">
+                                {/* Seat Info */}
+                                <div className="flex items-center gap-2 pb-2 border-b border-border/30">
+                                  <MapPin className="w-4 h-4 text-primary" />
+                                  <div>
+                                    <div className="font-semibold text-foreground">Seat {seatNum.toString().padStart(2, '0')}</div>
+                                    <div className="text-xs text-muted-foreground">Floor {floor} • {zoneName}</div>
+                                  </div>
                                 </div>
-                              )}
-                              {isAccessible && (
-                                <div className="w-5 h-5 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-white shadow-md flex items-center justify-center" title="Accessible seat">
-                                  <span className="text-[8px] text-white">♿</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+
+                                {/* Employee Info */}
+                                {emp ? (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <Users className="w-4 h-4 text-accent" />
+                                      <div>
+                                        <div className="font-medium text-foreground">{emp.name}</div>
+                                        <div className="text-xs text-muted-foreground">{emp.team} Team</div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Star className="w-3 h-3 text-yellow-500" />
+                                      <span className="text-xs text-muted-foreground">Assignment Score: 8.5/10</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-2">
+                                    <div className="text-sm font-medium text-muted-foreground">Available Seat</div>
+                                    <div className="text-xs text-muted-foreground">Click to assign employee</div>
+                                  </div>
+                                )}
+
+                                {/* Features */}
+                                {(isWindow || isAccessible) && (
+                                  <div className="space-y-1">
+                                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Features</div>
+                                    <div className="flex gap-2">
+                                      {isWindow && (
+                                        <Badge variant="secondary" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                                          <ExternalLink className="w-3 h-3 mr-1" />
+                                          Window View
+                                        </Badge>
+                                      )}
+                                      {isAccessible && (
+                                        <Badge variant="secondary" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                                          <UserCheck className="w-3 h-3 mr-1" />
+                                          Accessible
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       );
                     })}
                   </div>
@@ -240,7 +302,8 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
   };
 
   return (
-    <div className="space-y-8">
+    <TooltipProvider>
+      <div className="space-y-8">
       {/* Enhanced Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-3">
@@ -288,6 +351,7 @@ const SeatingMap: React.FC<SeatingMapProps> = ({ day, assignments, seats, employ
         </div>
       )}
     </div>
+    </TooltipProvider>
   );
 };
 
