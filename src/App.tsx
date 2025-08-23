@@ -42,53 +42,62 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
   return <>{children}</>;
 }
 
-function AppRoutes() {
+function AppContent() {
   const { isAuthenticated, user, loading } = useAuth();
   
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
   
-  if (!isAuthenticated) {
-    return <Auth />;
-  }
-  
-  if (user?.role === 'employee') {
-    return <EmployeePortal />;
-  }
-  
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager']}>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/schedule" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager']}>
-            <SchedulePage />
-          </ProtectedRoute>
-        } />
-        <Route path="/seating" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager']}>
-            <SeatingMapPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/analytics" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager']}>
-            <Analytics />
-          </ProtectedRoute>
-        } />
-        <Route path="/settings" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <Settings />
-          </ProtectedRoute>
-        } />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      <Route path="/auth" element={<Auth />} />
+      
+      {!isAuthenticated ? (
+        <Route path="*" element={<Auth />} />
+      ) : user?.role === 'employee' ? (
+        <Route path="*" element={<EmployeePortal />} />
+      ) : (
+        <>
+          <Route path="/" element={
+            <Layout>
+              <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <Dashboard />
+              </ProtectedRoute>
+            </Layout>
+          } />
+          <Route path="/schedule" element={
+            <Layout>
+              <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <SchedulePage />
+              </ProtectedRoute>
+            </Layout>
+          } />
+          <Route path="/seating" element={
+            <Layout>
+              <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <SeatingMapPage />
+              </ProtectedRoute>
+            </Layout>
+          } />
+          <Route path="/analytics" element={
+            <Layout>
+              <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <Analytics />
+              </ProtectedRoute>
+            </Layout>
+          } />
+          <Route path="/settings" element={
+            <Layout>
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Settings />
+              </ProtectedRoute>
+            </Layout>
+          } />
+          <Route path="*" element={<NotFound />} />
+        </>
+      )}
+    </Routes>
   );
 }
 
@@ -100,7 +109,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <AppRoutes />
+            <AppContent />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
