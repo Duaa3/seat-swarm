@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export default function Auth() {
-  const { isAuthenticated, login, signUp, loading } = useAuth();
+  const { isAuthenticated, login, signUp, loading, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -18,7 +18,10 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  console.log('Auth component - isAuthenticated:', isAuthenticated, 'user:', user);
+
   if (isAuthenticated) {
+    console.log('Should redirect now!');
     return <Navigate to="/" replace />;
   }
 

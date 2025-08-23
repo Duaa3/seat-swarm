@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
         setSession(session);
         
         
@@ -43,8 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               role: profile.role as 'admin' | 'manager' | 'employee',
               employee_id: undefined
             };
+            console.log('Setting user state:', user);
             setAuthState({ user, isAuthenticated: true });
           } else {
+            console.log('No profile found, creating one...');
             // If no profile exists, create one with default employee role
             const { data: newProfile, error: createError } = await supabase
               .from('profiles')
@@ -66,7 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 role: newProfile.role as 'admin' | 'manager' | 'employee',
                 employee_id: undefined
               };
+              console.log('Created new profile, setting user state:', user);
               setAuthState({ user, isAuthenticated: true });
+            } else {
+              console.log('Failed to create profile:', createError);
             }
           }
         } else {
