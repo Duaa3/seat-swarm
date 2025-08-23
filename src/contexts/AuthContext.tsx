@@ -28,57 +28,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (session?.user) {
           // Fetch user profile with role
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, full_name, role')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (profile) {
-            const user: User = {
-              id: profile.id,
-              name: profile.full_name || session.user.email || '',
-              email: session.user.email || '',
-              role: profile.role as 'admin' | 'manager' | 'employee',
-              employee_id: undefined
-            };
-            setAuthState({ user, isAuthenticated: true });
-          } else {
-            // If no profile exists, create one with default employee role
-            const { data: newProfile, error: createError } = await supabase
+          try {
+            const { data: profile } = await supabase
               .from('profiles')
-              .insert([
-                {
-                  id: session.user.id,
-                  full_name: session.user.email,
-                  role: 'employee'
-                }
-              ])
-              .select()
-              .single();
+              .select('id, full_name, role')
+              .eq('id', session.user.id)
+              .maybeSingle();
 
-            if (!createError && newProfile) {
+            if (profile) {
               const user: User = {
-                id: newProfile.id,
-                name: newProfile.full_name || session.user.email || '',
+                id: profile.id,
+                name: profile.full_name || session.user.email || '',
                 email: session.user.email || '',
-                role: newProfile.role as 'admin' | 'manager' | 'employee',
+                role: profile.role as 'admin' | 'manager' | 'employee',
                 employee_id: undefined
               };
               setAuthState({ user, isAuthenticated: true });
             } else {
-              // Still set authenticated to avoid infinite loading
-              setAuthState({ 
-                user: {
-                  id: session.user.id,
-                  name: session.user.email || '',
-                  email: session.user.email || '',
-                  role: 'employee',
-                  employee_id: undefined
-                }, 
-                isAuthenticated: true 
-              });
+              // Create profile with default role
+              await supabase
+                .from('profiles')
+                .insert([
+                  {
+                    id: session.user.id,
+                    full_name: session.user.email,
+                    role: 'employee'
+                  }
+                ]);
+
+              const user: User = {
+                id: session.user.id,
+                name: session.user.email || '',
+                email: session.user.email || '',
+                role: 'employee',
+                employee_id: undefined
+              };
+              setAuthState({ user, isAuthenticated: true });
             }
+          } catch (error) {
+            // Fallback user state if profile operations fail
+            const user: User = {
+              id: session.user.id,
+              name: session.user.email || '',
+              email: session.user.email || '',
+              role: 'employee',
+              employee_id: undefined
+            };
+            setAuthState({ user, isAuthenticated: true });
           }
         } else {
           setAuthState({ user: null, isAuthenticated: false });
