@@ -15,22 +15,17 @@ export function useSeats() {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching seats from database...');
       const data = await getSeats();
-      console.log('Seats fetch result:', data);
       setSeats(data);
-      console.log(`Loaded ${data.length} seats from database`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch seats';
       setError(errorMessage);
-      console.error('Error fetching seats:', err);
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive"
       });
     } finally {
-      console.log('Setting seats loading to false');
       setLoading(false);
     }
   };

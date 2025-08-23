@@ -15,22 +15,17 @@ export function useEmployees() {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching employees from database...');
       const data = await getEmployees();
-      console.log('Employee fetch result:', data);
       setEmployees(data);
-      console.log(`Loaded ${data.length} employees from database`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch employees';
       setError(errorMessage);
-      console.error('Error fetching employees:', err);
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive"
       });
     } finally {
-      console.log('Setting employees loading to false');
       setLoading(false);
     }
   };
