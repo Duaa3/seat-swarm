@@ -12,6 +12,7 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Constraints from "./pages/Constraints";
 import NotFound from "./pages/NotFound";
+import EmployeePortal from "./pages/EmployeePortal";
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -59,6 +60,11 @@ function AppContent() {
       <Route path="/constraints" element={
         <Layout>
           <Constraints />
+        </Layout>
+      } />
+      <Route path="/employee-portal" element={
+        <Layout>
+          <EmployeePortal />
         </Layout>
       } />
       <Route path="*" element={<NotFound />} />

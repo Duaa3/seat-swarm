@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import CalendarView from "@/components/planner/CalendarView";
+import DragDropCalendar from "@/components/planner/DragDropCalendar";
 import WarningsBanner from "@/components/planner/WarningsBanner";
+import ConflictMonitor from "@/components/realtime/ConflictMonitor";
+import { useAdvancedScheduler } from "@/hooks/useAdvancedScheduler";
 
 import { 
   DAYS, 
@@ -21,14 +24,15 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useSeats } from "@/hooks/useSeats";
 import { useScheduleData } from "@/hooks/useScheduleData";
 import { generateScheduleAPI } from "@/lib/api-client";
-import { Calendar, Users, MapPin, AlertTriangle, Download, Save, RotateCcw, Loader2 } from "lucide-react";
+import { Calendar, Users, MapPin, AlertTriangle, Download, Save, RotateCcw, Loader2, Play, Archive, Clock } from "lucide-react";
 
 const SchedulePage = () => {
   // Component handles schedule generation and management
   // Database hooks
   const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
   const { seats: dbSeats, loading: seatsLoading } = useSeats();
-  const { schedule, assignments, setSchedule, setAssignments, saveSchedule, saveSeatAssignments, clearSchedule, loading: scheduleLoading } = useScheduleData();
+  const { schedule, assignments, setSchedule, setAssignments, saveSchedule, saveSeatAssignments, clearSchedule, loading: scheduleLoading, metadata } = useScheduleData();
+  const { generating, publishing, generateSchedule, publishSchedule, archiveSchedule } = useAdvancedScheduler();
 
   // UI State
   const [selectedDay, setSelectedDay] = React.useState<DayKey>("Wed");
@@ -38,6 +42,9 @@ const SchedulePage = () => {
   const [solver, setSolver] = React.useState<"greedy" | "hungarian">("greedy");
   const [weights, setWeights] = React.useState<Weights>(DEFAULT_WEIGHTS);
   const [warnings, setWarnings] = React.useState<any[]>([]);
+  const [scheduleStatus, setScheduleStatus] = React.useState<'draft' | 'published' | 'archived'>('draft');
+  const [enableDragDrop, setEnableDragDrop] = React.useState(false);
+  const [conflictMonitorEnabled, setConflictMonitorEnabled] = React.useState(true);
 
   // Convert to legacy format for components
   const legacyEmployees = React.useMemo(() => dbEmployees.map(toLegacyEmployee), [dbEmployees]);
@@ -50,7 +57,7 @@ const SchedulePage = () => {
   const allTeams = React.useMemo(() => 
     [...new Set(dbEmployees.map(emp => emp.team))], [dbEmployees]);
 
-  const loading = employeesLoading || seatsLoading || scheduleLoading;
+  const loading = employeesLoading || seatsLoading || scheduleLoading || generating || publishing;
   const isDataLoaded = dbEmployees.length > 0 && dbSeats.length > 0;
 
   const handleGenerateSchedule = async () => {
@@ -64,81 +71,28 @@ const SchedulePage = () => {
     }
 
     try {
-      console.log('Generating schedule with:', { employees: dbEmployees.length, seats: dbSeats.length });
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay() + 1);
       
-      // Use the API to generate schedule
-      const result = await generateScheduleAPI({
-        dayCapacities: {
-          Mon: dayCaps.Mon,
-          Tue: dayCaps.Tue,
-          Wed: dayCaps.Wed,
-          Thu: dayCaps.Thu,
-          Fri: dayCaps.Fri
-        },
-        deptCapacity: deptCap,
-        teamClusters: clusterTeams
+      const result = await generateSchedule({
+        week_start: weekStart.toISOString().split('T')[0],
+        enforce_constraints: true,
+        override_ratios: false
       });
 
-      if (result.success && result.data) {
-        console.log('Generated schedule:', result.data.schedule);
-
-        // Convert API response to our schedule format - extract employee IDs only
-        const newSchedule: Record<DayKey, string[]> = {
-          Mon: (result.data.schedule.Mon || []).map((item: any) => item.employeeId || item),
-          Tue: (result.data.schedule.Tue || []).map((item: any) => item.employeeId || item),
-          Wed: (result.data.schedule.Wed || []).map((item: any) => item.employeeId || item),
-          Thu: (result.data.schedule.Thu || []).map((item: any) => item.employeeId || item),
-          Fri: (result.data.schedule.Fri || []).map((item: any) => item.employeeId || item)
-        };
-
-        // Convert API response to assignments format
-        const newAssignments: Record<DayKey, Record<string, string>> = {
-          Mon: {},
-          Tue: {},
-          Wed: {},
-          Thu: {},
-          Fri: {}
-        };
-
-        // Extract seat assignments from the API response
-        DAYS.forEach(day => {
-          const dayData = result.data.schedule[day] || [];
-          dayData.forEach((item: any) => {
-            if (item.employeeId && item.seatId) {
-              newAssignments[day][item.employeeId] = item.seatId;
-            }
-          });
-        });
-
-        // Update both schedule and assignments state
-        setSchedule(newSchedule);
+      if (result.success && result.summary) {
+        setScheduleStatus('draft');
+        setWarnings(result.summary.violations || []);
         
-        // Save the schedule to database
-        const today = new Date();
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay() + 1);
-        try {
-          console.log('Saving schedule to database...', newSchedule);
-          await saveSchedule(newSchedule, dbEmployees, weekStart.toISOString().split('T')[0]);
-          console.log('Schedule saved successfully');
-        } catch (saveError) {
-          console.error('Error saving schedule:', saveError);
-          // Don't throw here, let the user know but continue
-          toast({
-            title: "Schedule generated but not saved",
-            description: `Schedule created but couldn't save to database: ${saveError instanceof Error ? saveError.message : 'Unknown error'}`,
-            variant: "destructive"
-          });
-        }
-        
-        setWarnings([]);
+        // Refresh schedule data to show the generated schedule
+        const { loadScheduleForWeek } = useScheduleData();
+        await loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
         
         toast({
-          title: "Schedule generated successfully",
-          description: `Generated ${result.data.assignments} assignments for week starting ${result.data.weekStartDate}`,
+          title: "Advanced Schedule Generated",
+          description: `Generated ${result.summary.total_assignments} assignments with ${result.summary.violations.length} constraint issues`,
         });
-      } else {
-        throw new Error(result.error || 'Failed to generate schedule');
       }
     } catch (error) {
       console.error('Error generating schedule:', error);
@@ -147,6 +101,38 @@ const SchedulePage = () => {
         description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
+    }
+  };
+
+  const handlePublishSchedule = async () => {
+    if (!metadata?.scheduleId) {
+      toast({
+        title: "No schedule to publish",
+        description: "Generate a schedule first before publishing.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const success = await publishSchedule(metadata.scheduleId);
+    if (success) {
+      setScheduleStatus('published');
+    }
+  };
+
+  const handleArchiveSchedule = async () => {
+    if (!metadata?.scheduleId) {
+      toast({
+        title: "No schedule to archive",
+        description: "Generate a schedule first before archiving.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const success = await archiveSchedule(metadata.scheduleId);
+    if (success) {
+      setScheduleStatus('archived');
     }
   };
 
@@ -227,11 +213,46 @@ const SchedulePage = () => {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {/* Schedule Status Badge */}
+          {metadata?.scheduleId && (
+            <Badge 
+              variant={scheduleStatus === 'published' ? 'default' : scheduleStatus === 'archived' ? 'secondary' : 'outline'}
+              className="capitalize"
+            >
+              <Clock className="h-3 w-3 mr-1" />
+              {scheduleStatus}
+            </Badge>
+          )}
+          
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleReset} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
               Reset
             </Button>
+            
+            {/* Publish/Archive Actions */}
+            {metadata?.scheduleId && scheduleStatus === 'draft' && (
+              <Button 
+                onClick={handlePublishSchedule} 
+                disabled={publishing}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {publishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+                Publish
+              </Button>
+            )}
+            
+            {metadata?.scheduleId && scheduleStatus === 'published' && (
+              <Button 
+                variant="outline" 
+                onClick={handleArchiveSchedule}
+                className="border-orange-300 text-orange-600 hover:bg-orange-50"
+              >
+                <Archive className="h-4 w-4 mr-2" />
+                Archive
+              </Button>
+            )}
+            
             <Button variant="secondary" onClick={handleSave}>
               <Save className="h-4 w-4 mr-2" />
               Save
@@ -351,15 +372,15 @@ const SchedulePage = () => {
               className="w-full"
               size="lg"
             >
-              {loading ? (
+              {generating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
+                  Generating Advanced Schedule...
                 </>
               ) : !isDataLoaded ? (
                 "Load Data First"
               ) : (
-                "Generate Weekly Schedule"
+                "🚀 Generate Advanced Schedule"
               )}
             </Button>
 
@@ -377,13 +398,57 @@ const SchedulePage = () => {
         </div>
 
         {/* Calendar View */}
-        <div className="lg:col-span-2">
-          <CalendarView
-            schedule={schedule}
-            employees={legacyEmployees}
-            selectedDay={selectedDay}
-          />
+        <div className="lg:col-span-2 space-y-6">
+          {enableDragDrop ? (
+            <DragDropCalendar
+              schedule={schedule}
+              employees={legacyEmployees}
+              selectedDay={selectedDay}
+              onScheduleChange={setSchedule}
+              readOnly={scheduleStatus === 'published'}
+            />
+          ) : (
+            <CalendarView
+              schedule={schedule}
+              employees={legacyEmployees}
+              selectedDay={selectedDay}
+            />
+          )}
+          
+          {/* Drag & Drop Toggle */}
+          <div className="flex items-center justify-center">
+            <Button
+              variant="outline"
+              onClick={() => setEnableDragDrop(!enableDragDrop)}
+              className="gap-2"
+            >
+              {enableDragDrop ? "📊 Switch to View Mode" : "🎯 Enable Drag & Drop"}
+            </Button>
+          </div>
         </div>
+      </div>
+
+      {/* Real-time Conflict Monitor */}
+      <div className="mt-6">
+        <ConflictMonitor 
+          enabled={conflictMonitorEnabled}
+          onConflictDetected={(conflict) => {
+            console.log('Conflict detected:', conflict);
+            // Add to warnings if not already present
+            setWarnings(prev => {
+              const exists = prev.some(w => w.message === conflict.message);
+              if (!exists) {
+                return [...prev, {
+                  day: 'Multiple' as DayKey,
+                  rule: conflict.type,
+                  details: conflict.message,
+                  severity: conflict.severity === 'critical' ? 'error' : 'warn'
+                }];
+              }
+              return prev;
+            });
+          }}
+        />
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ const navigationItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Schedule", url: "/schedule", icon: CalendarDays },
   { title: "Seating Map", url: "/seating", icon: MapPin },
+  { title: "Employee Portal", url: "/employee-portal", icon: User },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Constraints", url: "/constraints", icon: Sliders },
   { title: "Settings", url: "/settings", icon: Settings },
