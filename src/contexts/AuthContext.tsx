@@ -23,9 +23,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state change:', event, session?.user?.email);
         setSession(session);
+        
+        // Use setTimeout to avoid blocking the auth state change event
+        setTimeout(async () => {
         
         
         if (session?.user) {
@@ -89,7 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setAuthState({ user: null, isAuthenticated: false });
         }
-        setLoading(false);
+          setLoading(false);
+        }, 0);
       }
     );
 
