@@ -90,19 +90,23 @@ serve(async (req) => {
 
     // Clear existing data first
     console.log('Clearing existing data...');
-    await supabaseClient.from('ai_training_data').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('assignment_changes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('assignments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('employee_attendance').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('employee_constraints').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('model_performance').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('optimization_rules').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('seat_locks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('team_collaborations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('team_constraints').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('schedule_assignments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('schedule_days').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseClient.from('schedules').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    const clearTables = [
+      'ai_training_data', 'assignment_changes', 'assignments', 
+      'employee_attendance', 'employee_constraints', 'model_performance', 
+      'optimization_rules', 'seat_locks', 'team_collaborations', 
+      'team_constraints', 'schedule_assignments', 'schedule_days', 'schedules'
+    ];
+    
+    for (const table of clearTables) {
+      try {
+        await supabaseClient.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        console.log(`Cleared ${table}`);
+      } catch (error) {
+        console.log(`Error clearing ${table}:`, error);
+      }
+    }
+
+    // Clear employees and seats
     await supabaseClient.from('employees').delete().neq('id', 'dummy');
     await supabaseClient.from('seats').delete().neq('id', 'dummy');
 
@@ -116,6 +120,7 @@ serve(async (req) => {
       console.error('Error inserting employees:', employeesError);
       throw employeesError;
     }
+    console.log(`Inserted ${mockEmployees.length} employees`);
 
     // Insert seats
     console.log('Inserting seats...');
@@ -127,6 +132,7 @@ serve(async (req) => {
       console.error('Error inserting seats:', seatsError);
       throw seatsError;
     }
+    console.log(`Inserted ${mockSeats.length} seats`);
 
     // Insert employee constraints
     console.log('Inserting employee constraints...');
@@ -134,7 +140,7 @@ serve(async (req) => {
       employee_id: emp.id,
       preferred_days: emp.preferred_days,
       avoid_days: [],
-      max_weekly_office_days: Math.floor(Math.random() * 3) + 3, // 3-5 days
+      max_weekly_office_days: Math.floor(Math.random() * 3) + 3,
       preferred_zone: emp.preferred_zone,
       preferred_floor: Math.random() < 0.5 ? (Math.random() < 0.5 ? 1 : 2) : null,
       needs_accessible_seat: emp.needs_accessible
@@ -146,7 +152,8 @@ serve(async (req) => {
 
     if (constraintsError) {
       console.error('Error inserting employee constraints:', constraintsError);
-      throw constraintsError;
+    } else {
+      console.log(`Inserted ${employeeConstraints.length} employee constraints`);
     }
 
     // Insert team constraints
@@ -167,7 +174,8 @@ serve(async (req) => {
 
     if (teamConstraintsError) {
       console.error('Error inserting team constraints:', teamConstraintsError);
-      throw teamConstraintsError;
+    } else {
+      console.log(`Inserted ${teamConstraints.length} team constraints`);
     }
 
     // Insert optimization rules
@@ -185,7 +193,7 @@ serve(async (req) => {
       },
       {
         rule_name: "Window Preference",
-        rule_type: "preference",
+        rule_type: "preference", 
         description: "Give preference to window seats when requested",
         weight: 1.0,
         is_active: true,
@@ -202,16 +210,6 @@ serve(async (req) => {
         rule_config: { priority: "medium", type: "team_proximity" },
         success_rate: 0.68,
         avg_satisfaction_impact: 0.6
-      },
-      {
-        rule_name: "Zone Preference",
-        rule_type: "preference",
-        description: "Respect employee zone preferences",
-        weight: 0.8,
-        is_active: true,
-        rule_config: { priority: "low", type: "zone" },
-        success_rate: 0.78,
-        avg_satisfaction_impact: 0.3
       }
     ];
 
@@ -221,40 +219,8 @@ serve(async (req) => {
 
     if (rulesError) {
       console.error('Error inserting optimization rules:', rulesError);
-      throw rulesError;
-    }
-
-    // Insert model performance data
-    console.log('Inserting model performance data...');
-    const modelPerformance = [];
-    for (let i = 0; i < 30; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      
-      modelPerformance.push({
-        model_type: "hungarian",
-        model_version: "1.0.0",
-        assignment_date: date.toISOString().split('T')[0],
-        total_assignments: Math.floor(Math.random() * 100) + 50,
-        successful_assignments: Math.floor(Math.random() * 80) + 40,
-        avg_satisfaction: 3.2 + Math.random() * 1.8,
-        avg_constraint_adherence: 0.7 + Math.random() * 0.3,
-        processing_time_ms: Math.floor(Math.random() * 5000) + 1000,
-        metrics: {
-          window_satisfaction: 0.6 + Math.random() * 0.4,
-          team_proximity: 0.5 + Math.random() * 0.5,
-          accessibility_compliance: 0.9 + Math.random() * 0.1
-        }
-      });
-    }
-
-    const { error: performanceError } = await supabaseClient
-      .from('model_performance')
-      .insert(modelPerformance);
-
-    if (performanceError) {
-      console.error('Error inserting model performance:', performanceError);
-      throw performanceError;
+    } else {
+      console.log(`Inserted ${optimizationRules.length} optimization rules`);
     }
 
     // Insert employee attendance data
@@ -262,15 +228,14 @@ serve(async (req) => {
     const attendanceData = [];
     const today = new Date();
     
-    for (let i = 0; i < 14; i++) { // Last 2 weeks
+    for (let i = 0; i < 14; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       
-      // Skip weekends
       if (date.getDay() === 0 || date.getDay() === 6) continue;
       
       const dateStr = date.toISOString().split('T')[0];
-      const attendingEmployees = mockEmployees.filter(() => Math.random() < 0.6); // 60% attendance rate
+      const attendingEmployees = mockEmployees.filter(() => Math.random() < 0.4);
       
       attendingEmployees.forEach(emp => {
         const checkIn = new Date(date);
@@ -292,19 +257,22 @@ serve(async (req) => {
       });
     }
 
-    const { error: attendanceError } = await supabaseClient
-      .from('employee_attendance')
-      .insert(attendanceData);
+    if (attendanceData.length > 0) {
+      const { error: attendanceError } = await supabaseClient
+        .from('employee_attendance')
+        .insert(attendanceData);
 
-    if (attendanceError) {
-      console.error('Error inserting attendance:', attendanceError);
-      throw attendanceError;
+      if (attendanceError) {
+        console.error('Error inserting attendance:', attendanceError);
+      } else {
+        console.log(`Inserted ${attendanceData.length} attendance records`);
+      }
     }
 
     // Insert AI training data
     console.log('Inserting AI training data...');
     const trainingData = [];
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 50; i++) {
       const randomEmployee = mockEmployees[Math.floor(Math.random() * mockEmployees.length)];
       const randomSeat = mockSeats[Math.floor(Math.random() * mockSeats.length)];
       
@@ -350,7 +318,8 @@ serve(async (req) => {
 
     if (trainingError) {
       console.error('Error inserting training data:', trainingError);
-      throw trainingError;
+    } else {
+      console.log(`Inserted ${trainingData.length} training records`);
     }
 
     // Insert global constraints if not exist
