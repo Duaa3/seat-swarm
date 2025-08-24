@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmployeeConstraints } from "@/hooks/useConstraints";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeActivity } from "@/hooks/useRealtimeActivity";
 
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
@@ -474,6 +475,7 @@ const ManagerDashboard = () => {
   const { toast } = useToast();
   const { employees, loading: employeesLoading } = useEmployees();
   const { seats, loading: seatsLoading } = useSeats();
+  const { activities, loading: activitiesLoading } = useRealtimeActivity();
 
   const stats = React.useMemo(() => ({
     totalEmployees: employees.length,
@@ -488,11 +490,8 @@ const ManagerDashboard = () => {
     { title: "Analytics", path: "/analytics", icon: TrendingUp, color: "bg-secondary" },
   ];
 
-  const recentActivity = [
-    { action: "Schedule generated for next week", time: "2 hours ago", status: "success" },
-    { action: "Seat assignment updated for Floor 2", time: "4 hours ago", status: "info" },
-    { action: "Capacity warning for Thursday", time: "6 hours ago", status: "warning" },
-  ];
+  // Real-time activity data
+  const recentActivity = activities.slice(0, 6); // Show latest 6 activities
 
   const handleQuickGenerate = () => {
     toast({
@@ -598,19 +597,33 @@ const ManagerDashboard = () => {
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 rounded-lg border">
-                <div className="mt-0.5">
-                  {activity.status === "success" && <CheckCircle2 className="h-4 w-4 text-green-500" />}
-                  {activity.status === "warning" && <AlertTriangle className="h-4 w-4 text-yellow-500" />}
-                  {activity.status === "info" && <Calendar className="h-4 w-4 text-blue-500" />}
-                </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium">{activity.action}</p>
-                  <p className="text-xs text-muted-foreground">{activity.time}</p>
-                </div>
+            {activitiesLoading ? (
+              <div className="text-center text-muted-foreground py-4">
+                Loading recent activity...
               </div>
-            ))}
+            ) : recentActivity.length === 0 ? (
+              <div className="text-center text-muted-foreground py-4">
+                No recent activity
+              </div>
+            ) : (
+              recentActivity.map((activity, index) => (
+                <div key={activity.id || index} className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors">
+                  <div className="mt-0.5">
+                    {activity.status === "success" && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                    {activity.status === "warning" && <AlertTriangle className="h-4 w-4 text-yellow-500" />}
+                    {activity.status === "error" && <AlertTriangle className="h-4 w-4 text-red-500" />}
+                    {activity.status === "info" && <Calendar className="h-4 w-4 text-blue-500" />}
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium">{activity.action}</p>
+                    {activity.details && (
+                      <p className="text-xs text-muted-foreground">{activity.details}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
 

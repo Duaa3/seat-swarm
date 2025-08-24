@@ -1,5 +1,6 @@
 import React from "react";
 import { CalendarDays, Settings, MapPin, BarChart3, Home, Sliders, User, LogOut } from "lucide-react";
+import { NotificationSystem } from "@/components/ui/notification-system";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -62,11 +63,12 @@ export function AppSidebar() {
               <MapPin className="size-4 text-white" />
             </div>
             {!collapsed && (
-              <div>
+              <div className="flex-1">
                 <h2 className="text-sm font-semibold">Office Planner</h2>
                 <p className="text-xs text-muted-foreground">Smart Seating</p>
               </div>
             )}
+            {!collapsed && <NotificationSystem />}
           </div>
         </div>
 
