@@ -1,6 +1,10 @@
 import React from "react";
 import SeatingMap from "@/components/planner/SeatingMap";
-import PlannerControls, { Weights } from "@/components/planner/PlannerControls";
+import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { allTeams } from "@/data/mock";
 import WarningsBanner from "@/components/planner/WarningsBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,12 +29,10 @@ const SeatingMapPage = () => {
   const [assignLoading, setAssignLoading] = React.useState(false);
   const [warnings, setWarnings] = React.useState<WarningItem[]>([]);
   
-  // Planner controls state
-  const [dayCaps, setDayCaps] = React.useState<DayCapacities>(() => ({ Mon: 90, Tue: 90, Wed: 90, Thu: 90, Fri: 90 }));
+  // Seating controls state
   const [deptCap, setDeptCap] = React.useState<number>(60);
   const [clusterTeams, setClusterTeams] = React.useState<string[]>([]);
   const [solver, setSolver] = React.useState<"greedy" | "hungarian">("greedy");
-  const [weights, setWeights] = React.useState<Weights>({ seatSatisfaction: 0.7, onsite: 0.6, projectPenalty: 0.4, zone: 0.5 });
   
   // Use real database data
   const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
@@ -321,37 +323,54 @@ const SeatingMapPage = () => {
         </div>
       </div>
 
-      {/* Planner Controls */}
+      {/* Seating Controls */}
       <Card className="shadow-glow">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sliders className="h-5 w-5" />
-            Planning Controls
+            Seating Controls
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <PlannerControls
-            dayCaps={dayCaps}
-            onDayCapChange={(day, v) => setDayCaps((s) => ({ ...s, [day]: v }))}
-            deptCap={deptCap}
-            onDeptCapChange={setDeptCap}
-            clusterTeams={clusterTeams}
-            onClusterTeamsChange={setClusterTeams}
-            solver={solver}
-            onSolverChange={setSolver}
-            weights={weights}
-            onWeightsChange={setWeights}
-            onGenerate={() => {
-              toast({ 
-                title: "Generate from Schedule page", 
-                description: "Use the Schedule page to generate new schedules.",
-                variant: "destructive" 
-              });
-            }}
-            onAssignDay={() => assignSeatsForDay(selectedDay)}
-            selectedDay={selectedDay}
-            onSelectedDayChange={setSelectedDay}
-          />
+          <div className="grid gap-6 sm:grid-cols-3">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="dept-cap">Department cap</Label>
+                <span className="text-sm text-muted-foreground">{deptCap}%</span>
+              </div>
+              <Slider id="dept-cap" value={[deptCap]} onValueChange={(v) => setDeptCap(v[0])} min={20} max={100} step={5} />
+              <p className="text-xs text-muted-foreground">No more than {deptCap}% of a department on the same day.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Solver</Label>
+              <div className="flex items-center gap-3">
+                <span className={`text-xs ${solver === "greedy" ? "font-semibold text-foreground" : "text-muted-foreground"}`}>Greedy</span>
+                <Switch checked={solver === "hungarian"} onCheckedChange={(c) => setSolver(c ? "hungarian" : "greedy")} />
+                <span className={`text-xs ${solver === "hungarian" ? "font-semibold text-foreground" : "text-muted-foreground"}`}>Hungarian</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Team clusters</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {allTeams.slice(0, 6).map((t) => (
+                  <label key={t} className="flex items-center gap-2 rounded-md border p-2">
+                    <Checkbox
+                      checked={clusterTeams.includes(t)}
+                      onCheckedChange={(c) => {
+                        const next = new Set(clusterTeams);
+                        if (c) next.add(t);
+                        else next.delete(t);
+                        setClusterTeams(Array.from(next));
+                      }}
+                    />
+                    <span className="text-sm">{t}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -422,8 +441,9 @@ const SeatingMapPage = () => {
           seats={legacySeats}
           employees={legacyEmployees}
           teamColor={(team: string) => {
-            const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA"];
+            const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA", "Support"];
             const index = teams.indexOf(team);
+            if (index === -1) return `team-bg-8`; // Default for unknown teams
             return `team-bg-${(index % 8) + 1}`;
           }}
         />
@@ -445,8 +465,9 @@ const SeatingMapPage = () => {
                 
                 if (teamAssignedToday === 0) return null;
                 
-                const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA"];
+                const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA", "Support"];
                 const index = teams.indexOf(team);
+                if (index === -1) return `team-bg-8`; // Default for unknown teams
                 const teamBgClass = `team-bg-${(index % 8) + 1}`;
                 
                 return (
