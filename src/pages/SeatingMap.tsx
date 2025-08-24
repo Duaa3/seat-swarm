@@ -255,31 +255,38 @@ const SeatingMapPage = () => {
     try {
       setAssignLoading(true);
       
-      // Delete all seat assignments for the selected day
+      // Calculate the assignment date for the selected day
       const today = new Date();
       const dayIndex = DAYS.indexOf(selectedDay);
       const assignmentDate = new Date(today);
       assignmentDate.setDate(today.getDate() - today.getDay() + 1 + dayIndex);
       
-      console.log(`Clearing assignments for ${selectedDay} (${assignmentDate.toISOString().split('T')[0]})`);
+      console.log(`Clearing SEAT assignments for ${selectedDay} (${assignmentDate.toISOString().split('T')[0]})`);
 
-      // Delete assignments from database
+      // Instead of deleting records, update them to remove seat assignments
+      // Keep the scheduled employees but clear their seat assignments
       const { error } = await supabase
         .from('schedule_assignments')
-        .delete()
+        .update({
+          seat_id: null,
+          assignment_type: 'scheduled' // Change back to scheduled (not assigned to a seat)
+        })
         .eq('assignment_date', assignmentDate.toISOString().split('T')[0])
         .eq('day_of_week', selectedDay)
-        .eq('assignment_type', 'assigned');
+        .eq('assignment_type', 'assigned')
+        .not('seat_id', 'is', null); // Only update records that currently have seat assignments
 
       if (error) {
-        throw new Error(`Failed to clear assignments: ${error.message}`);
+        throw new Error(`Failed to clear seat assignments: ${error.message}`);
       }
 
-      // Update local state immediately
+      // Update local state to clear seat assignments but keep schedule
       setAssignments(prev => ({
         ...prev,
-        [selectedDay]: {}
+        [selectedDay]: {} // Clear seat assignments for this day
       }));
+      
+      // The schedule should remain unchanged - don't modify it
       
       // Refresh data to ensure consistency
       const weekStart = new Date(today);
@@ -287,14 +294,14 @@ const SeatingMapPage = () => {
       await loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
 
       toast({ 
-        title: "Assignments cleared", 
-        description: `Cleared all seat assignments for ${selectedDay}.` 
+        title: "Seat assignments cleared", 
+        description: `Cleared seat assignments for ${selectedDay}. Scheduled employees remain.` 
       });
     } catch (error) {
-      console.error('Clear assignments error:', error);
+      console.error('Clear seat assignments error:', error);
       toast({ 
         title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to clear assignments.",
+        description: error instanceof Error ? error.message : "Failed to clear seat assignments.",
         variant: "destructive"
       });
     } finally {
