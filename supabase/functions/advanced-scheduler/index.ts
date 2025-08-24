@@ -158,23 +158,12 @@ serve(async (req) => {
       // Delete existing schedule and related data
       console.log(`Deleting existing schedule for week ${week_start}`);
       
-      // Delete assignments first (foreign key dependency)
+      // Delete existing schedule assignments for this week
       await supabaseClient
-        .from('assignments')
+        .from('schedule_assignments')
         .delete()
-        .in('schedule_day_id', 
-          await supabaseClient
-            .from('schedule_days')
-            .select('id')
-            .eq('schedule_id', existingSchedule.id)
-            .then(res => res.data?.map(d => d.id) || [])
-        );
-      
-      // Delete schedule days
-      await supabaseClient
-        .from('schedule_days')
-        .delete()
-        .eq('schedule_id', existingSchedule.id);
+        .gte('assignment_date', week_start)
+        .lte('assignment_date', new Date(new Date(week_start).getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
       
       // Delete the schedule
       await supabaseClient
@@ -205,43 +194,55 @@ serve(async (req) => {
 
     savedSchedule = newSchedule;
 
-    // 4. Save schedule days and assignments
+    // 4. Save schedule assignments directly to schedule_assignments table
+    const allAssignments = [];
+    
     for (const day of DAYS) {
-      const { data: scheduleDay, error: dayError } = await supabaseClient
-        .from('schedule_days')
-        .insert({
-          schedule_id: savedSchedule.id,
-          day_name: day,
-          capacity: schedule.daily_schedules[day].length,
-          violations: schedule.violations.filter(v => v.day === day).map(v => v.message)
-        })
-        .select('id')
-        .single();
-
-      if (dayError || !scheduleDay) {
-        console.error(`Failed to save day ${day}:`, dayError);
-        continue;
+      const dayIndex = DAYS.indexOf(day);
+      const assignmentDate = new Date(week_start);
+      assignmentDate.setDate(assignmentDate.getDate() + dayIndex);
+      const dateStr = assignmentDate.toISOString().split('T')[0];
+      
+      // First save scheduled employees (those assigned to come to office)
+      const scheduledEmployees = schedule.daily_schedules[day] || [];
+      for (const employeeId of scheduledEmployees) {
+        allAssignments.push({
+          employee_id: employeeId,
+          assignment_date: dateStr,
+          day_of_week: day,
+          assignment_type: 'scheduled',
+          model_version: 'advanced-scheduler-v1',
+          confidence_score: schedule.assignment_scores[day]?.[employeeId] || 0,
+          constraints_met: schedule.assignment_reasons[day]?.[employeeId] || {}
+        });
       }
-
-      // Save assignments for this day
-      const assignments = schedule.seat_assignments[day] || {};
-      const assignmentRows = Object.entries(assignments).map(([employeeId, seatId]) => ({
-        schedule_day_id: scheduleDay.id,
-        employee_id: employeeId,
-        seat_id: seatId,
-        score: schedule.assignment_scores[day]?.[employeeId] || 0,
-        reasons: schedule.assignment_reasons[day]?.[employeeId] || {}
-      }));
-
-      if (assignmentRows.length > 0) {
-        const { error: assignmentError } = await supabaseClient
-          .from('assignments')
-          .insert(assignmentRows);
-
-        if (assignmentError) {
-          console.error(`Failed to save assignments for ${day}:`, assignmentError);
+      
+      // Then save seat assignments for those employees
+      const seatAssignments = schedule.seat_assignments[day] || {};
+      for (const [employeeId, seatId] of Object.entries(seatAssignments)) {
+        // Update the existing scheduled assignment with seat info
+        const existingAssignment = allAssignments.find(a => 
+          a.employee_id === employeeId && a.day_of_week === day
+        );
+        if (existingAssignment) {
+          existingAssignment.seat_id = seatId;
+          existingAssignment.assignment_type = 'assigned';
         }
       }
+    }
+
+    // Save all assignments in bulk
+    if (allAssignments.length > 0) {
+      const { error: assignmentError } = await supabaseClient
+        .from('schedule_assignments')
+        .insert(allAssignments);
+
+      if (assignmentError) {
+        console.error('Failed to save schedule assignments:', assignmentError);
+        throw new Error(`Failed to save assignments: ${assignmentError.message}`);
+      }
+      
+      console.log(`Saved ${allAssignments.length} schedule assignments`);
     }
 
     console.log(`Schedule generated successfully. ID: ${savedSchedule.id}`);
