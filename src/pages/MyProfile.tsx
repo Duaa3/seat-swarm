@@ -251,12 +251,12 @@ const MyProfile = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Preferred Zone</Label>
-                <Select value={formData.preferred_zone} onValueChange={(value) => handleInputChange('preferred_zone', value)}>
+                <Select value={formData.preferred_zone || "no-preference"} onValueChange={(value) => handleInputChange('preferred_zone', value === "no-preference" ? "" : value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select preferred zone" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No preference</SelectItem>
+                    <SelectItem value="no-preference">No preference</SelectItem>
                     {ZONES.map(zone => (
                       <SelectItem key={zone} value={zone}>Zone {zone}</SelectItem>
                     ))}
@@ -267,14 +267,14 @@ const MyProfile = () => {
               <div className="space-y-2">
                 <Label>Preferred Floor</Label>
                 <Select 
-                  value={formData.preferred_floor?.toString() || ""} 
-                  onValueChange={(value) => handleInputChange('preferred_floor', value ? parseInt(value) : null)}
+                  value={formData.preferred_floor?.toString() || "no-preference"} 
+                  onValueChange={(value) => handleInputChange('preferred_floor', value === "no-preference" ? null : parseInt(value))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select preferred floor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No preference</SelectItem>
+                    <SelectItem value="no-preference">No preference</SelectItem>
                     <SelectItem value="1">Floor 1</SelectItem>
                     <SelectItem value="2">Floor 2</SelectItem>
                   </SelectContent>
