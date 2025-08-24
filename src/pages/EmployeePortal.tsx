@@ -54,7 +54,7 @@ const EmployeePortal = () => {
 
   // Find current employee data
   const currentEmployee = employees.find(emp => emp.id === user?.id);
-  const currentConstraints = constraints.find(c => c.employee_id === user?.id);
+  const currentConstraints = constraints.find(c => c.employee_id === currentEmployee?.id);
 
   // Form state for profile editing
   const [formData, setFormData] = React.useState({
@@ -226,9 +226,14 @@ const EmployeePortal = () => {
         });
       }
 
-      // Update or create constraints
+      // Update or create constraints - need to find the correct employee ID
+      const employeeBusinessId = currentEmployee?.id;
+      if (!employeeBusinessId) {
+        throw new Error("Employee business ID not found");
+      }
+      
       const constraintsData = {
-        employee_id: user.id,
+        employee_id: employeeBusinessId,
         max_weekly_office_days: formData.max_weekly_office_days,
         preferred_floor: formData.preferred_floor,
         avoid_days: formData.avoid_days,
