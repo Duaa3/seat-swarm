@@ -52,8 +52,12 @@ const EmployeePortal = () => {
   const [liveUpdates, setLiveUpdates] = React.useState(true);
   const [lastUpdate, setLastUpdate] = React.useState<Date>(new Date());
 
-  // Find current employee data
-  const currentEmployee = employees.find(emp => emp.id === user?.id);
+  // Find current employee data - match by profile info since user might not have employee record yet
+  const currentEmployee = employees.find(emp => 
+    emp.full_name?.toLowerCase() === profile?.full_name?.toLowerCase() &&
+    emp.department === profile?.department &&
+    emp.team === profile?.team
+  );
   const currentConstraints = constraints.find(c => c.employee_id === currentEmployee?.id);
 
   // Form state for profile editing
@@ -226,10 +230,34 @@ const EmployeePortal = () => {
         });
       }
 
-      // Update or create constraints - need to find the correct employee ID
-      const employeeBusinessId = currentEmployee?.id;
+      // Update or create constraints - handle case where employee record doesn't exist yet
+      let employeeBusinessId = currentEmployee?.id;
+      
+      if (!employeeBusinessId && profile) {
+        // Create employee record if it doesn't exist
+        const newEmployeeId = `E${Date.now().toString().slice(-3)}${Math.random().toString(36).slice(2, 4).toUpperCase()}`;
+        const { data: newEmployee, error: employeeError } = await supabase
+          .from('employees')
+          .insert({
+            id: newEmployeeId,
+            full_name: profile.full_name,
+            department: profile.department,
+            team: profile.team,
+            preferred_work_mode: formData.preferred_work_mode,
+            prefer_window: formData.prefer_window,
+            needs_accessible: formData.needs_accessible,
+            preferred_zone: formData.preferred_zone,
+            preferred_days: formData.preferred_days,
+          })
+          .select()
+          .single();
+          
+        if (employeeError) throw employeeError;
+        employeeBusinessId = newEmployee.id;
+      }
+      
       if (!employeeBusinessId) {
-        throw new Error("Employee business ID not found");
+        throw new Error("Unable to determine or create employee business ID");
       }
       
       const constraintsData = {
