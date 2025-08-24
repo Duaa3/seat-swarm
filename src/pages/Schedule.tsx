@@ -85,9 +85,8 @@ const SchedulePage = () => {
         setScheduleStatus('draft');
         setWarnings(result.summary.violations || []);
         
-        // Refresh schedule data to show the generated schedule
-        const { loadScheduleForWeek } = useScheduleData();
-        await loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
+        // The schedule data will automatically refresh through the hook
+        // No need to manually reload
         
         toast({
           title: "Advanced Schedule Generated",
