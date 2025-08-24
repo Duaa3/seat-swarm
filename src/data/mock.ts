@@ -65,7 +65,7 @@ export const DEFAULT_WEIGHTS: Weights = {
 function generateEmployees(): Employee[] {
   const firstNames = ["Aisha", "Hilal", "Maya", "David", "Sofia", "James", "Elena", "Ahmad", "Lisa", "Roberto", "Sarah", "Michael", "Priya", "Carlos", "Emma", "Hassan", "Fatima", "Alex", "Nina", "Omar", "Lucia", "Mark", "Zara", "Sam", "Leila", "Kevin", "Amara", "Ben", "Yasmin", "Ryan"];
   const lastNames = ["Rahman", "Ahmed", "Chen", "Kim", "Garcia", "Wilson", "Petrov", "Hassan", "Thompson", "Silva", "Johnson", "Brown", "Patel", "Martinez", "Davis", "Ali", "Khan", "Lee", "Miller", "Jones", "Smith", "Lopez", "Clark", "Nguyen", "Taylor", "White", "Anderson", "Williams", "Jackson", "Martin"];
-  const teams = ["Network", "CoreOps", "Design", "Sales", "Data", "QA", "Security", "DevOps", "Product", "Support"];
+  const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA", "Support"];
   const departments = ["Core", "GoToMarket", "Operations"];
   const workModes: ("hybrid" | "remote" | "onsite")[] = ["hybrid", "remote", "onsite"];
   const zones = ["ZoneA", "ZoneB", "ZoneC"];
