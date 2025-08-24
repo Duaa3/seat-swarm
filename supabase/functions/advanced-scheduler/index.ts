@@ -114,12 +114,22 @@ serve(async (req) => {
         .lte('date', week_start)
     ]);
 
-    if (!employees || !seats || !globalConstraints?.[0]) {
-      throw new Error('Missing required data');
+    if (!employees || !seats) {
+      throw new Error('Missing required data: employees or seats not found');
     }
 
-    const constraints = globalConstraints[0] as GlobalConstraints;
+    // Use default constraints if none exist in database
+    const constraints: GlobalConstraints = globalConstraints?.[0] || {
+      min_client_site_ratio: 0.4,
+      max_client_site_ratio: 0.6,
+      max_consecutive_office_days: 3,
+      allow_team_splitting: false,
+      floor_1_capacity: 48,
+      floor_2_capacity: 50
+    };
+    
     console.log('Loaded constraints:', constraints);
+    console.log(`Found ${employees.length} employees and ${seats.length} seats`);
 
     // 2. Generate schedule using advanced algorithm
     const schedule = await generateAdvancedSchedule({
