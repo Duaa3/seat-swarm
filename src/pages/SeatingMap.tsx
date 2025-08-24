@@ -98,6 +98,13 @@ const SeatingMapPage = () => {
     }
   }, [isDataLoaded, loadScheduleForWeek]);
 
+  // Set all teams for clustering when teams data loads
+  React.useEffect(() => {
+    if (allTeams.length > 0 && clusterTeams.length === 0) {
+      setClusterTeams(allTeams);
+    }
+  }, [allTeams, clusterTeams.length]);
+
   // Convert seat assignments to assignments format for the current day
   const dayAssignments = React.useMemo(() => {
     const assignments = seatAssignments[selectedDay] || {};
