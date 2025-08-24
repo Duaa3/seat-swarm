@@ -22,7 +22,7 @@ import {
 import { useScheduleData } from "@/hooks/useScheduleData";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useSeats } from "@/hooks/useSeats";
-import { MapPin, Users, RefreshCw, Download, Loader2, Sliders } from "lucide-react";
+import { MapPin, Users, RefreshCw, Download, Loader2, Sliders, RotateCcw } from "lucide-react";
 
 const SeatingMapPage = () => {
   const [selectedDay, setSelectedDay] = React.useState<DayKey>("Wed");
@@ -245,6 +245,38 @@ const SeatingMapPage = () => {
     }
   }
 
+  const handleClearAssignments = async () => {
+    try {
+      setAssignLoading(true);
+      
+      // Clear assignments for the selected day by saving an empty assignment object
+      const today = new Date();
+      const dayIndex = DAYS.indexOf(selectedDay);
+      const assignmentDate = new Date(today);
+      assignmentDate.setDate(today.getDate() - today.getDay() + 1 + dayIndex);
+
+      await saveSeatAssignments({}, selectedDay, dbSeats, dbEmployees, assignmentDate.toISOString().split('T')[0]);
+      
+      // Refresh data to show cleared assignments
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay() + 1);
+      await loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
+
+      toast({ 
+        title: "Assignments cleared", 
+        description: `Cleared all seat assignments for ${selectedDay}.` 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: "Failed to clear assignments.",
+        variant: "destructive"
+      });
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
   const handleRefreshData = () => {
     const today = new Date();
     const weekStart = new Date(today);
@@ -320,12 +352,25 @@ const SeatingMapPage = () => {
                 onClick={() => assignSeatsForDay(selectedDay)} 
                 disabled={loading}
                 className="bg-gradient-primary hover:bg-gradient-primary/80"
-                variant={dayAssignments.length === 0 ? "default" : "outline"}
               >
                 {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MapPin className="h-4 w-4 mr-2" />}
-                {dayAssignments.length === 0 ? `Assign Seats for ${selectedDay}` : `Reassign Seats for ${selectedDay}`}
+                Assign Seats for {selectedDay}
               </Button>
             )}
+            
+            {/* Clear button - only show if there are assignments */}
+            {dayAssignments.length > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={handleClearAssignments}
+                disabled={loading}
+                className="border-red-300 text-red-600 hover:bg-red-50"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Clear Assignments
+              </Button>
+            )}
+            
             {/* Debug info */}
             <div className="text-xs text-muted-foreground flex items-center gap-2">
               <span>Scheduled: {schedule[selectedDay]?.length || 0}</span>
