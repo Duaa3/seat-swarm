@@ -131,6 +131,14 @@ serve(async (req) => {
     
     console.log('Loaded constraints:', constraints);
     console.log(`Found ${employees.length} employees and ${seats.length} seats`);
+    
+    // Debug: Check if janna is in the employees list
+    const janna = employees.find(e => e.id === 'E8475P' || e.full_name?.toLowerCase().includes('janna'));
+    if (janna) {
+      console.log('Found janna in employees:', janna);
+    } else {
+      console.log('Janna not found in employees list!');
+    }
 
     // 2. Generate schedule using advanced algorithm
     const schedule = await generateAdvancedSchedule({
