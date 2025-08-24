@@ -111,6 +111,11 @@ const SeatingMapPage = () => {
     const scheduledEmployees = schedule[selectedDay] || [];
     const scheduledCount = scheduledEmployees.length;
     
+    console.log(`Debug SeatingMap - ${selectedDay}:`);
+    console.log('  - scheduledEmployees:', scheduledEmployees);
+    console.log('  - seatAssignments[selectedDay]:', seatAssignments[selectedDay]);
+    console.log('  - dayAssignments:', dayAssignments);
+    
     // Get actual seat assignments for the selected day
     const assigned = dayAssignments.length;
     const unassigned = Math.max(0, scheduledCount - assigned);

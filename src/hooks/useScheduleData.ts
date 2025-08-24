@@ -179,6 +179,9 @@ export function useScheduleData() {
         weekEnd.toISOString().split('T')[0]
       );
       
+      console.log('Raw assignments loaded:', assignments.length);
+      console.log('Sample assignment:', assignments[0]);
+      
       // Group assignments by day
       const newSchedule: Schedule = {
         Mon: [], Tue: [], Wed: [], Thu: [], Fri: []
@@ -203,6 +206,9 @@ export function useScheduleData() {
         }
       }
       
+      console.log('Final schedule:', newSchedule);
+      console.log('Final seat assignments:', newSeatAssignments);
+      
       setSchedule(newSchedule);
       setAssignments(newSeatAssignments);
       
@@ -210,6 +216,8 @@ export function useScheduleData() {
       const utilizationByDay = Object.fromEntries(
         Object.entries(newSchedule).map(([day, empIds]) => [day, empIds.length])
       ) as Record<DayKey, number>;
+      
+      console.log('Setting metadata with totalScheduled:', totalScheduled);
       
       setMetadata({
         weekOf: weekStartDate,
