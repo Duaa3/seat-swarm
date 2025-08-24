@@ -7,6 +7,8 @@ import {
   bulkSaveScheduleAssignments 
 } from '@/lib/supabase-api';
 import { useToast } from '@/hooks/use-toast';
+import { sendScheduleChangeNotification } from '@/lib/notifications';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface ScheduleMetadata {
   scheduleId?: string;
@@ -28,6 +30,7 @@ export function useScheduleData() {
   const [metadata, setMetadata] = useState<ScheduleMetadata | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Get current week start date (Monday)
   const getCurrentWeekStart = useCallback(() => {
@@ -99,6 +102,25 @@ export function useScheduleData() {
         title: "Schedule Saved",
         description: `Saved schedule with ${totalScheduled} assignments for week of ${weekStartDate}`
       });
+
+      // Send notification to affected users
+      if (user?.id) {
+        const changes = days.map(day => ({
+          day,
+          employeeCount: newSchedule[day].length,
+          hasChanges: newSchedule[day].length > 0
+        })).filter(change => change.hasChanges);
+
+        if (changes.length > 0) {
+          sendScheduleChangeNotification(user.id, {
+            weekOf: weekStartDate,
+            changes,
+            totalScheduled
+          }).catch(error => {
+            console.warn('Failed to send schedule change notification:', error);
+          });
+        }
+      }
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save schedule';
@@ -152,6 +174,27 @@ export function useScheduleData() {
         title: "Assignments Saved",
         description: `Saved ${Object.keys(dayAssignments).length} seat assignments for ${day}`
       });
+
+      // Send notification for seat assignment changes
+      if (user?.id && Object.keys(dayAssignments).length > 0) {
+        const seatChanges = Object.entries(dayAssignments).map(([employeeId, seatId]) => {
+          const seat = seats.find(s => s.id === seatId);
+          return {
+            day,
+            seatId,
+            zone: seat?.zone || 'Unknown',
+            employeeId
+          };
+        });
+
+        sendScheduleChangeNotification(user.id, {
+          weekOf: assignmentDate,
+          changes: seatChanges,
+          type: 'seat_assignment'
+        }).catch(error => {
+          console.warn('Failed to send seat assignment notification:', error);
+        });
+      }
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save seat assignments';
