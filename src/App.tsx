@@ -4,7 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
-import Index from "./pages/Index";
+import Welcome from "./pages/Welcome";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import SchedulePage from "./pages/Schedule";
 import SeatingMapPage from "./pages/SeatingMap";
@@ -13,6 +14,7 @@ import Settings from "./pages/Settings";
 import Constraints from "./pages/Constraints";
 import NotFound from "./pages/NotFound";
 import EmployeePortal from "./pages/EmployeePortal";
+import { useAuth } from "./hooks/useAuth";
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -25,47 +27,84 @@ const queryClient = new QueryClient({
 });
 
 function AppContent() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <Routes>
-      <Route path="/" element={
-        <Layout>
-          <Index />
-        </Layout>
-      } />
+      <Route path="/" element={<Welcome />} />
+      <Route path="/auth" element={<Auth />} />
+      
+      {/* Protected Routes */}
       <Route path="/dashboard" element={
-        <Layout>
-          <Dashboard />
-        </Layout>
+        user ? (
+          <Layout>
+            <Dashboard />
+          </Layout>
+        ) : (
+          <Auth />
+        )
       } />
       <Route path="/schedule" element={
-        <Layout>
-          <SchedulePage />
-        </Layout>
+        user ? (
+          <Layout>
+            <SchedulePage />
+          </Layout>
+        ) : (
+          <Auth />
+        )
       } />
       <Route path="/seating" element={
-        <Layout>
-          <SeatingMapPage />
-        </Layout>
+        user ? (
+          <Layout>
+            <SeatingMapPage />
+          </Layout>
+        ) : (
+          <Auth />
+        )
       } />
       <Route path="/analytics" element={
-        <Layout>
-          <Analytics />
-        </Layout>
+        user ? (
+          <Layout>
+            <Analytics />
+          </Layout>
+        ) : (
+          <Auth />
+        )
       } />
       <Route path="/settings" element={
-        <Layout>
-          <Settings />
-        </Layout>
+        user ? (
+          <Layout>
+            <Settings />
+          </Layout>
+        ) : (
+          <Auth />
+        )
       } />
       <Route path="/constraints" element={
-        <Layout>
-          <Constraints />
-        </Layout>
+        user ? (
+          <Layout>
+            <Constraints />
+          </Layout>
+        ) : (
+          <Auth />
+        )
       } />
       <Route path="/employee-portal" element={
-        <Layout>
-          <EmployeePortal />
-        </Layout>
+        user ? (
+          <Layout>
+            <EmployeePortal />
+          </Layout>
+        ) : (
+          <Auth />
+        )
       } />
       <Route path="*" element={<NotFound />} />
     </Routes>
