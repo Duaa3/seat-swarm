@@ -59,22 +59,62 @@ const Auth = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Redirect authenticated users to dashboard
-        if (session?.user) {
-          setTimeout(() => {
-            navigate('/dashboard');
+        // Navigate to appropriate page based on user role after login
+        if (session?.user && event === 'SIGNED_IN') {
+          setTimeout(async () => {
+            try {
+              // Fetch user role
+              const { data: roleData } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+              
+              const role = roleData?.role;
+              
+              // Navigate based on role
+              if (role === 'admin' || role === 'manager') {
+                navigate('/dashboard');
+              } else {
+                navigate('/employee-portal');
+              }
+            } catch (error) {
+              console.error('Error fetching user role:', error);
+              // Default fallback
+              navigate('/dashboard');
+            }
           }, 0);
         }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        navigate('/dashboard');
+        try {
+          // Fetch user role
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+          
+          const role = roleData?.role;
+          
+          // Navigate based on role
+          if (role === 'admin' || role === 'manager') {
+            navigate('/dashboard');
+          } else {
+            navigate('/employee-portal');
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          // Default fallback
+          navigate('/dashboard');
+        }
       }
     });
 
