@@ -9,6 +9,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useSeats } from "@/hooks/useSeats";
 import { useRealTimeAnalytics } from "@/hooks/useRealTimeAnalytics";
 import { getScheduleAssignments, getDataStats } from "@/lib/supabase-api";
+import { GenerateHistoricalDataButton } from "@/components/GenerateHistoricalDataButton";
 import { DAYS, DayKey } from "@/types/planner";
 import { toast } from "@/hooks/use-toast";
 
@@ -334,6 +335,7 @@ const Analytics = () => {
               </>
             )}
           </Button>
+          <GenerateHistoricalDataButton />
           <Button variant="outline" onClick={exportReport}>
             <Download className="h-4 w-4 mr-2" />
             Export Report
