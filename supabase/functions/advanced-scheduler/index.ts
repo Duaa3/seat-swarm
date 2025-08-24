@@ -145,8 +145,46 @@ serve(async (req) => {
       overrideRatios: override_ratios
     });
 
-    // 3. Save schedule to database
-    const { data: savedSchedule, error: scheduleError } = await supabaseClient
+    // 3. Check for existing schedule and handle appropriately
+    const { data: existingSchedule } = await supabaseClient
+      .from('schedules')
+      .select('id')
+      .eq('week_start', week_start)
+      .single();
+
+    let savedSchedule;
+    
+    if (existingSchedule) {
+      // Delete existing schedule and related data
+      console.log(`Deleting existing schedule for week ${week_start}`);
+      
+      // Delete assignments first (foreign key dependency)
+      await supabaseClient
+        .from('assignments')
+        .delete()
+        .in('schedule_day_id', 
+          await supabaseClient
+            .from('schedule_days')
+            .select('id')
+            .eq('schedule_id', existingSchedule.id)
+            .then(res => res.data?.map(d => d.id) || [])
+        );
+      
+      // Delete schedule days
+      await supabaseClient
+        .from('schedule_days')
+        .delete()
+        .eq('schedule_id', existingSchedule.id);
+      
+      // Delete the schedule
+      await supabaseClient
+        .from('schedules')
+        .delete()
+        .eq('id', existingSchedule.id);
+    }
+
+    // Create new schedule
+    const { data: newSchedule, error: scheduleError } = await supabaseClient
       .from('schedules')
       .insert({
         week_start,
@@ -161,9 +199,11 @@ serve(async (req) => {
       .select('id')
       .single();
 
-    if (scheduleError || !savedSchedule) {
+    if (scheduleError || !newSchedule) {
       throw new Error(`Failed to save schedule: ${scheduleError?.message}`);
     }
+
+    savedSchedule = newSchedule;
 
     // 4. Save schedule days and assignments
     for (const day of DAYS) {
