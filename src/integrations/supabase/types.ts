@@ -717,6 +717,69 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          algorithm_type: string
+          auto_assign_seats: boolean
+          company_name: string
+          constraint_violation_penalty: number
+          created_at: string
+          email_notifications: boolean
+          id: string
+          max_optimization_iterations: number
+          office_end_time: string
+          office_start_time: string
+          optimization_suggestions: boolean
+          schedule_conflict_alerts: boolean
+          special_zones: string | null
+          team_clustering_alerts: boolean
+          timezone: string
+          updated_at: string
+          weekly_summaries: boolean
+          working_days: string[]
+        }
+        Insert: {
+          algorithm_type?: string
+          auto_assign_seats?: boolean
+          company_name?: string
+          constraint_violation_penalty?: number
+          created_at?: string
+          email_notifications?: boolean
+          id?: string
+          max_optimization_iterations?: number
+          office_end_time?: string
+          office_start_time?: string
+          optimization_suggestions?: boolean
+          schedule_conflict_alerts?: boolean
+          special_zones?: string | null
+          team_clustering_alerts?: boolean
+          timezone?: string
+          updated_at?: string
+          weekly_summaries?: boolean
+          working_days?: string[]
+        }
+        Update: {
+          algorithm_type?: string
+          auto_assign_seats?: boolean
+          company_name?: string
+          constraint_violation_penalty?: number
+          created_at?: string
+          email_notifications?: boolean
+          id?: string
+          max_optimization_iterations?: number
+          office_end_time?: string
+          office_start_time?: string
+          optimization_suggestions?: boolean
+          schedule_conflict_alerts?: boolean
+          special_zones?: string | null
+          team_clustering_alerts?: boolean
+          timezone?: string
+          updated_at?: string
+          weekly_summaries?: boolean
+          working_days?: string[]
+        }
+        Relationships: []
+      }
       team_collaborations: {
         Row: {
           avg_proximity: number | null
