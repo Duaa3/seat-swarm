@@ -14,21 +14,30 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const navigationItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Schedule", url: "/schedule", icon: CalendarDays },
-  { title: "Seating Map", url: "/seating", icon: MapPin },
-  { title: "Employee Portal", url: "/employee-portal", icon: User },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Constraints", url: "/constraints", icon: Sliders },
-  { title: "Settings", url: "/settings", icon: Settings },
-];
+const getNavigationItems = (userRole: string | undefined) => {
+  const baseItems = [
+    { title: "Dashboard", url: "/dashboard", icon: Home, roles: ["admin", "manager", "employee"] },
+    { title: "My Profile", url: "/my-profile", icon: User, roles: ["employee"] },
+    { title: "Schedule", url: "/schedule", icon: CalendarDays, roles: ["admin", "manager"] },
+    { title: "Seating Map", url: "/seating", icon: MapPin, roles: ["admin", "manager"] },
+    { title: "Employee Portal", url: "/employee-portal", icon: User, roles: ["admin", "manager"] },
+    { title: "Analytics", url: "/analytics", icon: BarChart3, roles: ["admin", "manager"] },
+    { title: "Constraints", url: "/constraints", icon: Sliders, roles: ["admin"] },
+    { title: "Settings", url: "/settings", icon: Settings, roles: ["admin"] },
+  ];
+
+  return baseItems.filter(item => 
+    !userRole || item.roles.includes(userRole)
+  );
+};
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { signOut, userRole } = useAuth();
+  
+  const navigationItems = getNavigationItems(userRole?.role);
 
   const handleSignOut = async () => {
     await signOut();

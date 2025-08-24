@@ -14,7 +14,9 @@ import Settings from "./pages/Settings";
 import Constraints from "./pages/Constraints";
 import NotFound from "./pages/NotFound";
 import EmployeePortal from "./pages/EmployeePortal";
+import MyProfile from "./pages/MyProfile";
 import { useAuth } from "./hooks/useAuth";
+import { RoleBasedRoute } from "./components/RoleBasedRoute";
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -44,67 +46,67 @@ function AppContent() {
       
       {/* Protected Routes */}
       <Route path="/dashboard" element={
-        user ? (
+        <RoleBasedRoute allowedRoles={["admin", "manager", "employee"]}>
           <Layout>
             <Dashboard />
           </Layout>
-        ) : (
-          <Auth />
-        )
+        </RoleBasedRoute>
       } />
+      
+      <Route path="/my-profile" element={
+        <RoleBasedRoute allowedRoles={["employee"]}>
+          <Layout>
+            <MyProfile />
+          </Layout>
+        </RoleBasedRoute>
+      } />
+      
       <Route path="/schedule" element={
-        user ? (
+        <RoleBasedRoute allowedRoles={["admin", "manager"]}>
           <Layout>
             <SchedulePage />
           </Layout>
-        ) : (
-          <Auth />
-        )
+        </RoleBasedRoute>
       } />
+      
       <Route path="/seating" element={
-        user ? (
+        <RoleBasedRoute allowedRoles={["admin", "manager"]}>
           <Layout>
             <SeatingMapPage />
           </Layout>
-        ) : (
-          <Auth />
-        )
+        </RoleBasedRoute>
       } />
+      
       <Route path="/analytics" element={
-        user ? (
+        <RoleBasedRoute allowedRoles={["admin", "manager"]}>
           <Layout>
             <Analytics />
           </Layout>
-        ) : (
-          <Auth />
-        )
+        </RoleBasedRoute>
       } />
-      <Route path="/settings" element={
-        user ? (
-          <Layout>
-            <Settings />
-          </Layout>
-        ) : (
-          <Auth />
-        )
-      } />
-      <Route path="/constraints" element={
-        user ? (
-          <Layout>
-            <Constraints />
-          </Layout>
-        ) : (
-          <Auth />
-        )
-      } />
+      
       <Route path="/employee-portal" element={
-        user ? (
+        <RoleBasedRoute allowedRoles={["admin", "manager"]}>
           <Layout>
             <EmployeePortal />
           </Layout>
-        ) : (
-          <Auth />
-        )
+        </RoleBasedRoute>
+      } />
+      
+      <Route path="/constraints" element={
+        <RoleBasedRoute allowedRoles={["admin"]}>
+          <Layout>
+            <Constraints />
+          </Layout>
+        </RoleBasedRoute>
+      } />
+      
+      <Route path="/settings" element={
+        <RoleBasedRoute allowedRoles={["admin"]}>
+          <Layout>
+            <Settings />
+          </Layout>
+        </RoleBasedRoute>
       } />
       <Route path="*" element={<NotFound />} />
     </Routes>
