@@ -105,7 +105,7 @@ const EmployeePortal = () => {
           event: '*',
           schema: 'public',
           table: 'schedule_assignments',
-          filter: `employee_id=eq.${user.id}`
+          filter: `employee_id=eq.${currentEmployee?.id || user.id}`
         },
         (payload) => {
           console.log('Schedule update received:', payload);
@@ -122,7 +122,7 @@ const EmployeePortal = () => {
           event: '*',
           schema: 'public',
           table: 'satisfaction_feedback',
-          filter: `employee_id=eq.${user.id}`
+          filter: `employee_id=eq.${currentEmployee?.id || user.id}`
         },
         (payload) => {
           console.log('Feedback update received:', payload);
@@ -157,9 +157,23 @@ const EmployeePortal = () => {
     };
 
     DAYS.forEach(day => {
-      const isScheduled = schedule[day]?.includes(user.id) || false;
-      const seatId = assignments[day]?.[user.id];
+      // Use employee business ID for schedule lookups, not user ID
+      const employeeId = currentEmployee?.id || user.id;
+      const isScheduled = schedule[day]?.includes(employeeId) || false;
+      const seatId = assignments[day]?.[employeeId];
       const seatInfo = seatId ? dbSeats.find(s => s.id === seatId) : undefined;
+
+      // Debug log for janna
+      if (user.id === 'fed5761e-311b-4c75-a2a4-a62a80c5dbc7') {
+        console.log(`Debug janna ${day}:`, {
+          userIdUsed: employeeId,
+          userInSchedule: schedule[day]?.includes(employeeId),
+          currentEmployee: currentEmployee?.id,
+          seatId,
+          scheduleForDay: schedule[day],
+          assignmentsForDay: assignments[day]
+        });
+      }
 
       weekSchedule[day] = {
         scheduled: isScheduled,
@@ -169,7 +183,7 @@ const EmployeePortal = () => {
     });
 
     return weekSchedule;
-  }, [user?.id, schedule, assignments, dbSeats]);
+  }, [user?.id, currentEmployee?.id, schedule, assignments, dbSeats]);
 
   const employeeSchedule = React.useMemo(() => getEmployeeSchedule(), [getEmployeeSchedule]);
 
@@ -505,7 +519,7 @@ const EmployeePortal = () => {
 
       {/* Weekly Schedule View */}
       <WeeklyScheduleView
-        employeeId={user.id}
+        employeeId={currentEmployee?.id || user.id}
         employeeSchedule={employeeSchedule}
         employeeName={formData.full_name}
       />
