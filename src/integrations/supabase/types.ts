@@ -448,7 +448,6 @@ export type Database = {
           department: string | null
           full_name: string | null
           id: string
-          role: string
           team: string | null
           updated_at: string | null
           user_id: string | null
@@ -459,7 +458,6 @@ export type Database = {
           department?: string | null
           full_name?: string | null
           id: string
-          role?: string
           team?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -470,7 +468,6 @@ export type Database = {
           department?: string | null
           full_name?: string | null
           id?: string
-          role?: string
           team?: string | null
           updated_at?: string | null
           user_id?: string | null
