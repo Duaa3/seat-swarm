@@ -23,13 +23,13 @@ const Welcome = () => {
       icon: Users,
       title: "Team Collaboration",
       description: "Optimize team proximity and ensure co-presence for collaborative work",
-      color: "bg-gradient-to-br from-secondary to-secondary/80"
+      color: "bg-gradient-to-br from-blue-500 to-blue-600"
     },
     {
       icon: TrendingUp,
       title: "Analytics & Insights",
       description: "Comprehensive reporting on office utilization and employee satisfaction",
-      color: "bg-gradient-to-br from-primary-glow to-primary"
+      color: "bg-gradient-to-br from-green-500 to-green-600"
     },
     {
       icon: Shield,
@@ -75,16 +75,13 @@ const Welcome = () => {
               Make office planning effortless and employee-centric.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="flex justify-center">
               <Link to="/auth">
                 <Button size="lg" className="bg-gradient-primary hover:shadow-glow transition-all duration-300 text-lg px-8 py-6">
                   Get Started
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                Watch Demo
-              </Button>
             </div>
           </div>
         </div>
@@ -137,30 +134,6 @@ const Welcome = () => {
                 </CardContent>
               </Card>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-primary/10 via-accent/5 to-secondary/10">
-        <div className="container mx-auto px-6 text-center">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-4xl font-bold mb-6">Ready to Transform Your Office?</h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              Start optimizing your hybrid workspace today. Setup takes less than 5 minutes.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/auth">
-                <Button size="lg" className="bg-gradient-primary hover:shadow-glow transition-all duration-300 text-lg px-8 py-6">
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                Contact Sales
-              </Button>
-            </div>
           </div>
         </div>
       </section>
