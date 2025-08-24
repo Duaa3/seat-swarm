@@ -31,9 +31,19 @@ const EmployeeDashboard = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Find current employee data
-  const currentEmployee = employees.find(emp => emp.id === user?.id);
-  const currentConstraints = constraints.find(c => c.employee_id === user?.id);
+  // Find current employee data - check by name/dept/team if no direct ID match
+  let currentEmployee = employees.find(emp => emp.id === user?.id);
+  
+  // If no direct match, try to find by profile matching
+  if (!currentEmployee && profile) {
+    currentEmployee = employees.find(emp => 
+      emp.full_name?.toLowerCase() === profile.full_name?.toLowerCase() &&
+      emp.department === profile.department &&
+      emp.team === profile.team
+    );
+  }
+  
+  const currentConstraints = constraints.find(c => c.employee_id === currentEmployee?.id || c.employee_id === user?.id);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -103,9 +113,9 @@ const EmployeeDashboard = () => {
         });
       }
 
-      // Update or create constraints
+      // Update or create constraints - use employee business ID if available
       const constraintsData = {
-        employee_id: user.id,
+        employee_id: currentEmployee?.id || user.id,
         max_weekly_office_days: formData.max_weekly_office_days,
         preferred_floor: formData.preferred_floor,
         avoid_days: formData.avoid_days,
