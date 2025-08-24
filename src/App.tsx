@@ -86,7 +86,7 @@ function AppContent() {
       } />
       
       <Route path="/employee-portal" element={
-        <RoleBasedRoute allowedRoles={["admin", "manager"]}>
+        <RoleBasedRoute allowedRoles={["employee"]}>
           <Layout>
             <EmployeePortal />
           </Layout>

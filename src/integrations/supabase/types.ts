@@ -501,6 +501,51 @@ export type Database = {
         }
         Relationships: []
       }
+      satisfaction_feedback: {
+        Row: {
+          amenities_rating: number | null
+          assignment_date: string
+          comfort_rating: number | null
+          created_at: string
+          employee_id: string
+          feedback_text: string | null
+          id: string
+          location_rating: number | null
+          satisfaction_score: number
+          seat_id: string
+          updated_at: string
+          would_recommend: boolean | null
+        }
+        Insert: {
+          amenities_rating?: number | null
+          assignment_date: string
+          comfort_rating?: number | null
+          created_at?: string
+          employee_id: string
+          feedback_text?: string | null
+          id?: string
+          location_rating?: number | null
+          satisfaction_score: number
+          seat_id: string
+          updated_at?: string
+          would_recommend?: boolean | null
+        }
+        Update: {
+          amenities_rating?: number | null
+          assignment_date?: string
+          comfort_rating?: number | null
+          created_at?: string
+          employee_id?: string
+          feedback_text?: string | null
+          id?: string
+          location_rating?: number | null
+          satisfaction_score?: number
+          seat_id?: string
+          updated_at?: string
+          would_recommend?: boolean | null
+        }
+        Relationships: []
+      }
       schedule_assignments: {
         Row: {
           assignment_date: string

@@ -2,80 +2,103 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
-import { useScheduleData } from "@/hooks/useScheduleData";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  User, 
+  MapPin, 
+  Calendar, 
+  Edit, 
+  Save, 
+  Star, 
+  TrendingUp,
+  Clock,
+  Building,
+  Users,
+  Coffee,
+  Car,
+  AlertCircle,
+  CheckCircle2
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useSeats } from "@/hooks/useSeats";
+import { useScheduleData } from "@/hooks/useScheduleData";
+import { useEmployeeConstraints } from "@/hooks/useConstraints";
+import { useSatisfactionFeedback } from "@/hooks/useSatisfactionFeedback";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  DAYS, 
-  DayKey, 
-  toLegacyEmployee,
-  toLegacySeat
-} from "@/types/planner";
-import { 
-  Calendar, 
-  MapPin, 
-  Users, 
-  Clock, 
-  AlertCircle,
-  CheckCircle,
-  User,
-  Building,
-  Wifi,
-  Car,
-  Coffee
-} from "lucide-react";
+import { DayKey, DAYS } from "@/types/planner";
+import WeeklyScheduleView from "@/components/employee/WeeklyScheduleView";
+
+const ZONES = ['A', 'B', 'C', 'D'] as const;
 
 const EmployeePortal = () => {
-  const [selectedEmployee, setSelectedEmployee] = React.useState<string>("");
-  const [realTimeEnabled, setRealTimeEnabled] = React.useState(false);
-  
-  // Database hooks
-  const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
-  const { seats: dbSeats, loading: seatsLoading } = useSeats();
-  const { schedule, assignments, loading: scheduleLoading } = useScheduleData();
+  const { user, profile } = useAuth();
+  const { employees, updateEmployee } = useEmployees();
+  const { seats: dbSeats } = useSeats();
+  const { schedule, assignments } = useScheduleData();
+  const { constraints, updateConstraints, createConstraints } = useEmployeeConstraints();
+  const { feedback, loading: feedbackLoading } = useSatisfactionFeedback(user?.id);
+  const { toast } = useToast();
 
-  // Convert to legacy format
-  const legacyEmployees = React.useMemo(() => dbEmployees.map(toLegacyEmployee), [dbEmployees]);
-  const legacySeats = React.useMemo(() => dbSeats.map(toLegacySeat), [dbSeats]);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
 
-  const loading = employeesLoading || seatsLoading || scheduleLoading;
+  // Find current employee data
+  const currentEmployee = employees.find(emp => emp.id === user?.id);
+  const currentConstraints = constraints.find(c => c.employee_id === user?.id);
 
-  // Real-time conflict detection
+  // Form state for profile editing
+  const [formData, setFormData] = React.useState({
+    full_name: currentEmployee?.full_name || profile?.full_name || '',
+    department: currentEmployee?.department || profile?.department || '',
+    team: currentEmployee?.team || profile?.team || '',
+    preferred_work_mode: currentEmployee?.preferred_work_mode || 'hybrid',
+    prefer_window: currentEmployee?.prefer_window || false,
+    needs_accessible: currentEmployee?.needs_accessible || false,
+    preferred_zone: currentEmployee?.preferred_zone || '',
+    preferred_days: currentEmployee?.preferred_days || [],
+    max_weekly_office_days: currentConstraints?.max_weekly_office_days || 3,
+    preferred_floor: currentConstraints?.preferred_floor || null,
+    avoid_days: currentConstraints?.avoid_days || [],
+  });
+
   React.useEffect(() => {
-    if (!realTimeEnabled || !selectedEmployee) return;
-
-    const channel = supabase
-      .channel('schedule-conflicts')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'assignments'
-        },
-        (payload) => {
-          console.log('Real-time assignment change:', payload);
-          // Check if this affects the selected employee
-          if ((payload.new as any)?.employee_id === selectedEmployee || (payload.old as any)?.employee_id === selectedEmployee) {
-            toast({
-              title: "Schedule Updated",
-              description: "Your schedule has been updated in real-time",
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [realTimeEnabled, selectedEmployee]);
+    if (currentEmployee || profile) {
+      setFormData({
+        full_name: currentEmployee?.full_name || profile?.full_name || '',
+        department: currentEmployee?.department || profile?.department || '',
+        team: currentEmployee?.team || profile?.team || '',
+        preferred_work_mode: currentEmployee?.preferred_work_mode || 'hybrid',
+        prefer_window: currentEmployee?.prefer_window || false,
+        needs_accessible: currentEmployee?.needs_accessible || false,
+        preferred_zone: currentEmployee?.preferred_zone || '',
+        preferred_days: currentEmployee?.preferred_days || [],
+        max_weekly_office_days: currentConstraints?.max_weekly_office_days || 3,
+        preferred_floor: currentConstraints?.preferred_floor || null,
+        avoid_days: currentConstraints?.avoid_days || [],
+      });
+    }
+  }, [currentEmployee, profile, currentConstraints]);
 
   // Get employee's weekly schedule
-  const getEmployeeSchedule = React.useCallback((employeeId: string) => {
+  const getEmployeeSchedule = React.useCallback((): Record<DayKey, { scheduled: boolean; seatId?: string; seatInfo?: any }> => {
+    if (!user?.id) {
+      return {
+        Mon: { scheduled: false },
+        Tue: { scheduled: false },
+        Wed: { scheduled: false },
+        Thu: { scheduled: false },
+        Fri: { scheduled: false },
+      };
+    }
+    
     const weekSchedule: Record<DayKey, { scheduled: boolean; seatId?: string; seatInfo?: any }> = {
       Mon: { scheduled: false },
       Tue: { scheduled: false },
@@ -85,8 +108,8 @@ const EmployeePortal = () => {
     };
 
     DAYS.forEach(day => {
-      const isScheduled = schedule[day]?.includes(employeeId) || false;
-      const seatId = assignments[day]?.[employeeId];
+      const isScheduled = schedule[day]?.includes(user.id) || false;
+      const seatId = assignments[day]?.[user.id];
       const seatInfo = seatId ? dbSeats.find(s => s.id === seatId) : undefined;
 
       weekSchedule[day] = {
@@ -97,364 +120,513 @@ const EmployeePortal = () => {
     });
 
     return weekSchedule;
-  }, [schedule, assignments, dbSeats]);
+  }, [user?.id, schedule, assignments, dbSeats]);
 
-  const selectedEmployeeData = React.useMemo(() => {
-    return dbEmployees.find(emp => emp.id === selectedEmployee);
-  }, [dbEmployees, selectedEmployee]);
+  const employeeSchedule = React.useMemo(() => getEmployeeSchedule(), [getEmployeeSchedule]);
 
-  const employeeSchedule = React.useMemo(() => {
-    return selectedEmployee ? getEmployeeSchedule(selectedEmployee) : null;
-  }, [selectedEmployee, getEmployeeSchedule]);
-
-  // Calculate stats for selected employee
+  // Calculate employee stats
   const employeeStats = React.useMemo(() => {
-    if (!employeeSchedule) return null;
-
-    const scheduledDays = Object.values(employeeSchedule).filter(day => day.scheduled).length;
-    const assignedSeats = Object.values(employeeSchedule).filter(day => day.seatId).length;
-    const windowSeats = Object.values(employeeSchedule).filter(day => day.seatInfo?.is_window).length;
-    const accessibleSeats = Object.values(employeeSchedule).filter(day => day.seatInfo?.is_accessible).length;
+    const scheduleValues = Object.values(employeeSchedule) as Array<{ scheduled: boolean; seatId?: string; seatInfo?: any }>;
+    const scheduledDays = scheduleValues.filter(day => day.scheduled).length;
+    const assignedSeats = scheduleValues.filter(day => day.seatId).length;
+    const windowSeats = scheduleValues.filter(day => day.seatInfo?.is_window).length;
+    
+    // Calculate average satisfaction from feedback
+    const avgSatisfaction = feedback.length > 0 
+      ? feedback.reduce((sum, f) => sum + f.satisfaction_score, 0) / feedback.length 
+      : 0;
 
     return {
       scheduledDays,
       assignedSeats,
       windowSeats,
-      accessibleSeats,
-      utilizationRate: scheduledDays > 0 ? Math.round((assignedSeats / scheduledDays) * 100) : 0
+      utilizationRate: scheduledDays > 0 ? Math.round((assignedSeats / scheduledDays) * 100) : 0,
+      avgSatisfaction: Math.round(avgSatisfaction * 10) / 10,
+      totalFeedback: feedback.length
     };
-  }, [employeeSchedule]);
+  }, [employeeSchedule, feedback]);
 
-  // Check for conflicts
-  const checkConflicts = React.useCallback(() => {
-    if (!selectedEmployee || !employeeSchedule) return [];
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
-    const conflicts: Array<{ day: DayKey; type: string; message: string; severity: 'warning' | 'error' }> = [];
+  const handleDayToggle = (day: string, isPreferred: boolean) => {
+    const field = isPreferred ? 'preferred_days' : 'avoid_days';
+    const currentDays = formData[field] as string[];
+    
+    setFormData(prev => ({
+      ...prev,
+      [field]: currentDays.includes(day) 
+        ? currentDays.filter(d => d !== day)
+        : [...currentDays, day]
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+    
+    setSaving(true);
+    try {
+      // Update employee data
+      if (currentEmployee) {
+        await updateEmployee(currentEmployee.id, {
+          full_name: formData.full_name,
+          department: formData.department,
+          team: formData.team,
+          preferred_work_mode: formData.preferred_work_mode,
+          prefer_window: formData.prefer_window,
+          needs_accessible: formData.needs_accessible,
+          preferred_zone: formData.preferred_zone,
+          preferred_days: formData.preferred_days,
+        });
+      }
+
+      // Update or create constraints
+      const constraintsData = {
+        employee_id: user.id,
+        max_weekly_office_days: formData.max_weekly_office_days,
+        preferred_floor: formData.preferred_floor,
+        avoid_days: formData.avoid_days,
+        preferred_days: formData.preferred_days,
+        preferred_zone: formData.preferred_zone,
+        needs_accessible_seat: formData.needs_accessible,
+      };
+
+      if (currentConstraints) {
+        await updateConstraints(currentConstraints.id, constraintsData);
+      } else {
+        await createConstraints(constraintsData);
+      }
+
+      // Update profile
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.full_name,
+          department: formData.department,
+          team: formData.team,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile Updated",
+        description: "Your information has been saved successfully.",
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Check for schedule conflicts
+  const conflicts = React.useMemo(() => {
+    const issues: Array<{ day: DayKey; message: string; severity: 'warning' | 'error' }> = [];
 
     DAYS.forEach(day => {
-      const dayData = employeeSchedule[day];
+      const dayData = employeeSchedule[day] as { scheduled: boolean; seatId?: string; seatInfo?: any };
       
-      // Conflict: Scheduled but no seat assigned
       if (dayData.scheduled && !dayData.seatId) {
-        conflicts.push({
+        issues.push({
           day,
-          type: 'missing_seat',
           message: 'Scheduled but no seat assigned',
           severity: 'error'
         });
       }
 
-      // Conflict: Accessibility needs not met
-      if (dayData.scheduled && dayData.seatInfo && selectedEmployeeData?.needs_accessible && !dayData.seatInfo.is_accessible) {
-        conflicts.push({
+      if (dayData.scheduled && dayData.seatInfo && formData.needs_accessible && !dayData.seatInfo.is_accessible) {
+        issues.push({
           day,
-          type: 'accessibility',
           message: 'Assigned seat is not accessible',
           severity: 'error'
         });
       }
 
-      // Warning: Preference not met
-      if (dayData.scheduled && dayData.seatInfo && selectedEmployeeData?.prefer_window && !dayData.seatInfo.is_window) {
-        conflicts.push({
+      if (dayData.scheduled && dayData.seatInfo && formData.prefer_window && !dayData.seatInfo.is_window) {
+        issues.push({
           day,
-          type: 'preference',
           message: 'Preferred window seat not available',
           severity: 'warning'
         });
       }
     });
 
-    return conflicts;
-  }, [selectedEmployee, employeeSchedule, selectedEmployeeData]);
+    return issues;
+  }, [employeeSchedule, formData]);
 
-  const conflicts = React.useMemo(() => checkConflicts(), [checkConflicts]);
-
-  const getSeatFeatures = (seatInfo: any) => {
-    const features = [];
-    if (seatInfo?.is_window) features.push({ icon: "🪟", label: "Window" });
-    if (seatInfo?.is_accessible) features.push({ icon: "♿", label: "Accessible" });
-    if (seatInfo?.zone) features.push({ icon: "📍", label: seatInfo.zone });
-    return features;
-  };
+  if (!user) {
+    return (
+      <div className="p-6 text-center">
+        <h1 className="text-2xl font-bold text-muted-foreground">Please log in to access your employee portal</h1>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in bg-background">
+    <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">👤 Employee Portal</h1>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <User className="h-8 w-8" />
+            Employee Portal
+          </h1>
           <p className="text-muted-foreground mt-2">
-            View individual schedules, seat assignments, and real-time updates
+            Welcome back, {formData.full_name || 'Employee'}! Manage your workspace preferences and view your schedule.
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Button
-            variant={realTimeEnabled ? "default" : "outline"}
-            onClick={() => setRealTimeEnabled(!realTimeEnabled)}
-            className="gap-2"
-          >
-            <Wifi className="h-4 w-4" />
-            Real-time {realTimeEnabled ? "ON" : "OFF"}
-          </Button>
-        </div>
+        <Button
+          onClick={isEditing ? handleSave : () => setIsEditing(true)}
+          disabled={saving}
+          className="gap-2"
+        >
+          {isEditing ? (
+            <>
+              <Save className="h-4 w-4" />
+              {saving ? "Saving..." : "Save Changes"}
+            </>
+          ) : (
+            <>
+              <Edit className="h-4 w-4" />
+              Edit Profile
+            </>
+          )}
+        </Button>
       </div>
 
-      {/* Employee Selection */}
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="shadow-glow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Office Days
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{employeeStats.scheduledDays}</div>
+            <p className="text-xs text-muted-foreground">this week</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-glow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Seat Assignment
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{employeeStats.utilizationRate}%</div>
+            <p className="text-xs text-muted-foreground">assignment rate</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-glow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Star className="h-4 w-4" />
+              Satisfaction
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">
+              {employeeStats.avgSatisfaction > 0 ? `${employeeStats.avgSatisfaction}/5` : 'N/A'}
+            </div>
+            <p className="text-xs text-muted-foreground">average rating</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-glow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Feedback
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{employeeStats.totalFeedback}</div>
+            <p className="text-xs text-muted-foreground">ratings given</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Conflicts Alert */}
+      {conflicts.length > 0 && (
+        <Alert className="border-orange-200 bg-orange-50/30">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Schedule Issues Detected:</strong> {conflicts.map(c => `${c.day}: ${c.message}`).join(', ')}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Weekly Schedule View */}
+      <WeeklyScheduleView
+        employeeId={user.id}
+        employeeSchedule={employeeSchedule}
+        employeeName={formData.full_name}
+      />
+
+      {/* Profile Information */}
       <Card className="shadow-glow">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            Select Employee
+            Personal Information
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Choose an employee to view their schedule..." />
-            </SelectTrigger>
-            <SelectContent>
-              {dbEmployees.map(emp => (
-                <SelectItem key={emp.id} value={emp.id}>
-                  <div className="flex items-center gap-2">
-                    <span>{emp.full_name}</span>
-                    <Badge variant="outline" className="text-xs">{emp.team}</Badge>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="full_name">Full Name</Label>
+              {isEditing ? (
+                <Input
+                  id="full_name"
+                  value={formData.full_name}
+                  onChange={(e) => handleInputChange('full_name', e.target.value)}
+                  placeholder="Enter your full name"
+                />
+              ) : (
+                <div className="p-2 bg-muted rounded-md">{formData.full_name || 'Not set'}</div>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="department">Department</Label>
+              {isEditing ? (
+                <Input
+                  id="department"
+                  value={formData.department}
+                  onChange={(e) => handleInputChange('department', e.target.value)}
+                  placeholder="Enter your department"
+                />
+              ) : (
+                <div className="p-2 bg-muted rounded-md">{formData.department || 'Not set'}</div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="team">Team</Label>
+              {isEditing ? (
+                <Input
+                  id="team"
+                  value={formData.team}
+                  onChange={(e) => handleInputChange('team', e.target.value)}
+                  placeholder="Enter your team"
+                />
+              ) : (
+                <div className="p-2 bg-muted rounded-md">{formData.team || 'Not set'}</div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="work_mode">Work Mode</Label>
+              {isEditing ? (
+                <Select value={formData.preferred_work_mode} onValueChange={(value) => handleInputChange('preferred_work_mode', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hybrid">Hybrid</SelectItem>
+                    <SelectItem value="office">Office</SelectItem>
+                    <SelectItem value="remote">Remote</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="p-2 bg-muted rounded-md capitalize">{formData.preferred_work_mode}</div>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {selectedEmployee && selectedEmployeeData && (
-        <>
-          {/* Employee Profile */}
-          <Card className="shadow-glow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                {selectedEmployeeData.full_name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{selectedEmployeeData.team}</span>
+      {/* Workspace Preferences */}
+      <Card className="shadow-glow">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Workspace Preferences
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="prefer_window">Window Seat Preference</Label>
+                  <p className="text-sm text-muted-foreground">I prefer seats near windows</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Building className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{selectedEmployeeData.department}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Coffee className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{selectedEmployeeData.preferred_work_mode || 'Hybrid'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Car className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{selectedEmployeeData.commute_minutes || 'N/A'} min commute</span>
-                </div>
+                {isEditing ? (
+                  <Switch
+                    id="prefer_window"
+                    checked={formData.prefer_window}
+                    onCheckedChange={(checked) => handleInputChange('prefer_window', checked)}
+                  />
+                ) : (
+                  <Badge variant={formData.prefer_window ? "default" : "secondary"}>
+                    {formData.prefer_window ? "Yes" : "No"}
+                  </Badge>
+                )}
               </div>
               
-              {/* Preferences */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                {selectedEmployeeData.prefer_window && (
-                  <Badge variant="outline" className="text-xs">🪟 Prefers window seats</Badge>
-                )}
-                {selectedEmployeeData.needs_accessible && (
-                  <Badge variant="outline" className="text-xs">♿ Needs accessible seat</Badge>
-                )}
-                {selectedEmployeeData.preferred_zone && (
-                  <Badge variant="outline" className="text-xs">📍 Prefers {selectedEmployeeData.preferred_zone}</Badge>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="needs_accessible">Accessibility Requirements</Label>
+                  <p className="text-sm text-muted-foreground">I need accessible seating</p>
+                </div>
+                {isEditing ? (
+                  <Switch
+                    id="needs_accessible"
+                    checked={formData.needs_accessible}
+                    onCheckedChange={(checked) => handleInputChange('needs_accessible', checked)}
+                  />
+                ) : (
+                  <Badge variant={formData.needs_accessible ? "default" : "secondary"}>
+                    {formData.needs_accessible ? "Required" : "Not needed"}
+                  </Badge>
                 )}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Statistics */}
-          {employeeStats && (
-            <div className="grid gap-4 md:grid-cols-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Scheduled Days
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{employeeStats.scheduledDays}</div>
-                  <p className="text-xs text-muted-foreground">out of 5 days</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Assigned Seats
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{employeeStats.assignedSeats}</div>
-                  <p className="text-xs text-muted-foreground">seats allocated</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Utilization</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{employeeStats.utilizationRate}%</div>
-                  <p className="text-xs text-muted-foreground">assignment rate</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Window Seats</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">{employeeStats.windowSeats}</div>
-                  <p className="text-xs text-muted-foreground">preferred seats</p>
-                </CardContent>
-              </Card>
             </div>
-          )}
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Preferred Zone</Label>
+                {isEditing ? (
+                  <Select value={formData.preferred_zone || "no-preference"} onValueChange={(value) => handleInputChange('preferred_zone', value === "no-preference" ? "" : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select preferred zone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-preference">No preference</SelectItem>
+                      {ZONES.map(zone => (
+                        <SelectItem key={zone} value={zone}>Zone {zone}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="p-2 bg-muted rounded-md">{formData.preferred_zone ? `Zone ${formData.preferred_zone}` : 'No preference'}</div>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Preferred Floor</Label>
+                {isEditing ? (
+                  <Select 
+                    value={formData.preferred_floor?.toString() || "no-preference"} 
+                    onValueChange={(value) => handleInputChange('preferred_floor', value === "no-preference" ? null : parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select preferred floor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-preference">No preference</SelectItem>
+                      <SelectItem value="1">Floor 1</SelectItem>
+                      <SelectItem value="2">Floor 2</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="p-2 bg-muted rounded-md">{formData.preferred_floor ? `Floor ${formData.preferred_floor}` : 'No preference'}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* Conflicts Alert */}
-          {conflicts.length > 0 && (
-            <Card className="border-red-200 bg-red-50/30">
-              <CardHeader>
-                <CardTitle className="text-sm flex items-center gap-2 text-red-700">
-                  <AlertCircle className="h-4 w-4" />
-                  Schedule Conflicts ({conflicts.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {conflicts.map((conflict, index) => (
-                    <div 
-                      key={index} 
-                      className={`flex items-center justify-between p-2 rounded ${
-                        conflict.severity === 'error' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{conflict.day}:</span>
-                        <span className="text-sm">{conflict.message}</span>
-                      </div>
-                      <Badge variant={conflict.severity === 'error' ? 'destructive' : 'secondary'} className="text-xs">
-                        {conflict.severity}
-                      </Badge>
+      {/* Schedule Preferences */}
+      <Card className="shadow-glow">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Schedule Preferences
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Maximum Office Days Per Week</Label>
+            {isEditing ? (
+              <Select 
+                value={formData.max_weekly_office_days.toString()} 
+                onValueChange={(value) => handleInputChange('max_weekly_office_days', parseInt(value))}
+              >
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <SelectItem key={num} value={num.toString()}>
+                      {num} {num === 1 ? 'day' : 'days'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="p-2 bg-muted rounded-md">{formData.max_weekly_office_days} {formData.max_weekly_office_days === 1 ? 'day' : 'days'}</div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-base font-medium">Preferred Days</Label>
+              <p className="text-sm text-muted-foreground mb-3">Days when you prefer to work in the office</p>
+              {isEditing ? (
+                <div className="flex flex-wrap gap-2">
+                  {DAYS.map(day => (
+                    <div key={day} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`preferred-${day}`}
+                        checked={formData.preferred_days.includes(day)}
+                        onCheckedChange={() => handleDayToggle(day, true)}
+                      />
+                      <Label htmlFor={`preferred-${day}`} className="text-sm">{day}</Label>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Weekly Schedule */}
-          {employeeSchedule && (
-            <Card className="shadow-glow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Weekly Schedule
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4">
-                  {DAYS.map(day => {
-                    const dayData = employeeSchedule[day];
-                    const features = dayData.seatInfo ? getSeatFeatures(dayData.seatInfo) : [];
-                    
-                    return (
-                      <div 
-                        key={day} 
-                        className={`p-4 rounded-lg border-2 ${
-                          dayData.scheduled 
-                            ? dayData.seatId 
-                              ? "border-green-200 bg-green-50/30" 
-                              : "border-yellow-200 bg-yellow-50/30"
-                            : "border-gray-200 bg-gray-50/30"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-lg">{day}</span>
-                              {dayData.scheduled ? (
-                                dayData.seatId ? (
-                                  <CheckCircle className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <AlertCircle className="h-4 w-4 text-yellow-600" />
-                                )
-                              ) : (
-                                <Clock className="h-4 w-4 text-gray-400" />
-                              )}
-                            </div>
-                            
-                            {dayData.scheduled && (
-                              <Badge variant={dayData.seatId ? "default" : "secondary"}>
-                                {dayData.seatId ? "Seat Assigned" : "Pending Assignment"}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          {dayData.seatId && (
-                            <div className="text-right">
-                              <div className="font-medium text-sm">Seat {dayData.seatId}</div>
-                              <div className="text-xs text-muted-foreground">
-                                Floor {dayData.seatInfo?.floor || 'N/A'}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {dayData.scheduled && (
-                          <div className="mt-3">
-                            {dayData.seatId ? (
-                              <div className="flex flex-wrap gap-2">
-                                {features.map((feature, index) => (
-                                  <Badge key={index} variant="outline" className="text-xs">
-                                    {feature.icon} {feature.label}
-                                  </Badge>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-yellow-700">
-                                Scheduled for office but seat assignment pending
-                              </p>
-                            )}
-                          </div>
-                        )}
-                        
-                        {!dayData.scheduled && (
-                          <p className="text-sm text-gray-600 mt-2">
-                            Working remotely
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {formData.preferred_days.length > 0 ? formData.preferred_days.map(day => (
+                    <Badge key={day} variant="outline">{day}</Badge>
+                  )) : <span className="text-muted-foreground">No preference</span>}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
-
-      {!selectedEmployee && (
-        <Card className="border-dashed border-2">
-          <CardContent className="pt-6">
-            <div className="text-center py-12">
-              <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">Select an Employee</h3>
-              <p className="text-muted-foreground">
-                Choose an employee from the dropdown above to view their schedule, seat assignments, and preferences.
-              </p>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+
+            <div>
+              <Label className="text-base font-medium">Days to Avoid</Label>
+              <p className="text-sm text-muted-foreground mb-3">Days when you prefer to work remotely</p>
+              {isEditing ? (
+                <div className="flex flex-wrap gap-2">
+                  {DAYS.map(day => (
+                    <div key={day} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`avoid-${day}`}
+                        checked={formData.avoid_days.includes(day)}
+                        onCheckedChange={() => handleDayToggle(day, false)}
+                      />
+                      <Label htmlFor={`avoid-${day}`} className="text-sm">{day}</Label>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {formData.avoid_days.length > 0 ? formData.avoid_days.map(day => (
+                    <Badge key={day} variant="secondary">{day}</Badge>
+                  )) : <span className="text-muted-foreground">No specific days to avoid</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
