@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { 
   DAYS, 
@@ -36,7 +37,7 @@ const SeatingMapPage = () => {
   // Use real database data
   const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
   const { seats: dbSeats, loading: seatsLoading } = useSeats();
-  const { schedule, assignments: seatAssignments, loading: scheduleLoading, loadScheduleForWeek, saveSeatAssignments } = useScheduleData();
+  const { schedule, assignments: seatAssignments, loading: scheduleLoading, loadScheduleForWeek, saveSeatAssignments, setAssignments } = useScheduleData();
   
   // Convert to legacy format for components
   const legacyEmployees = React.useMemo(() => dbEmployees.map(toLegacyEmployee), [dbEmployees]);
@@ -254,15 +255,33 @@ const SeatingMapPage = () => {
     try {
       setAssignLoading(true);
       
-      // Clear assignments for the selected day by saving an empty assignment object
+      // Delete all seat assignments for the selected day
       const today = new Date();
       const dayIndex = DAYS.indexOf(selectedDay);
       const assignmentDate = new Date(today);
       assignmentDate.setDate(today.getDate() - today.getDay() + 1 + dayIndex);
-
-      await saveSeatAssignments({}, selectedDay, dbSeats, dbEmployees, assignmentDate.toISOString().split('T')[0]);
       
-      // Refresh data to show cleared assignments
+      console.log(`Clearing assignments for ${selectedDay} (${assignmentDate.toISOString().split('T')[0]})`);
+
+      // Delete assignments from database
+      const { error } = await supabase
+        .from('schedule_assignments')
+        .delete()
+        .eq('assignment_date', assignmentDate.toISOString().split('T')[0])
+        .eq('day_of_week', selectedDay)
+        .eq('assignment_type', 'assigned');
+
+      if (error) {
+        throw new Error(`Failed to clear assignments: ${error.message}`);
+      }
+
+      // Update local state immediately
+      setAssignments(prev => ({
+        ...prev,
+        [selectedDay]: {}
+      }));
+      
+      // Refresh data to ensure consistency
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - today.getDay() + 1);
       await loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
@@ -272,9 +291,10 @@ const SeatingMapPage = () => {
         description: `Cleared all seat assignments for ${selectedDay}.` 
       });
     } catch (error) {
+      console.error('Clear assignments error:', error);
       toast({ 
         title: "Error", 
-        description: "Failed to clear assignments.",
+        description: error instanceof Error ? error.message : "Failed to clear assignments.",
         variant: "destructive"
       });
     } finally {
