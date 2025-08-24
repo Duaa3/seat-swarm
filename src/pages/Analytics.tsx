@@ -386,7 +386,7 @@ const Analytics = () => {
       )}
 
       {/* Real-time Status Panel */}
-      {realTimeMetrics && realTimeMetrics.currentOccupancy !== undefined && (
+      {realTimeMetrics && (
         <div className="grid gap-4 md:grid-cols-4">
           <Card className="border-primary/20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -445,6 +445,71 @@ const Analytics = () => {
               </div>
               <p className="text-xs text-orange-600 dark:text-orange-400">
                 Next hour activity
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Fallback Basic Overview when no real-time metrics */}
+      {!realTimeMetrics && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="border-primary/20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Average Occupancy</CardTitle>
+              <Activity className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                {Math.round(stats.analyticsData.avgOccupancy)}%
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                Based on assignments
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Capacity</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-700 dark:text-green-300">
+                {stats.analyticsData.totalCapacity}
+              </div>
+              <p className="text-xs text-green-600 dark:text-green-400">
+                Available seats
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Team Count</CardTitle>
+              <Zap className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                {allTeams.length}
+              </div>
+              <p className="text-xs text-purple-600 dark:text-purple-400">
+                Active teams
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Departments</CardTitle>
+              <Brain className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                {allDepts.length}
+              </div>
+              <p className="text-xs text-orange-600 dark:text-orange-400">
+                Active departments
               </p>
             </CardContent>
           </Card>
