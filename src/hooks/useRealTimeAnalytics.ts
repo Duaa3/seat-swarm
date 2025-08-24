@@ -180,15 +180,20 @@ export function useRealTimeAnalytics() {
   const startMonitoring = useCallback(() => {
     if (isMonitoring) return;
 
+    console.log('Starting real-time monitoring...');
     setIsMonitoring(true);
     
     // Initial fetch
     fetchRealTimeMetrics();
     
-    // Set up periodic updates every 30 seconds
-    const interval = setInterval(fetchRealTimeMetrics, 30000);
+    // Set up periodic updates every 2 minutes for more responsive updates
+    const interval = setInterval(() => {
+      console.log('Periodic real-time metrics fetch...');
+      fetchRealTimeMetrics();
+    }, 120000);
     
     return () => {
+      console.log('Stopping real-time monitoring...');
       clearInterval(interval);
       setIsMonitoring(false);
     };

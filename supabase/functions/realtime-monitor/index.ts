@@ -25,13 +25,21 @@ class RealTimeMonitor {
 
   async monitorRealTimeMetrics() {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
     const lastHour = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
 
     try {
-      // Get recent data
+      // First get all assignments to find the most recent date
+      const { data: allAssignments } = await this.supabase
+        .from('schedule_assignments')
+        .select('assignment_date')
+        .order('assignment_date', { ascending: false })
+        .limit(1);
+
+      const mostRecentDate = allAssignments?.[0]?.assignment_date || now.toISOString().split('T')[0];
+
+      // Get recent data using the most recent assignment date
       const [assignments, employees, seats, recentAssignments] = await Promise.all([
-        this.supabase.from('schedule_assignments').select('*').eq('assignment_date', today),
+        this.supabase.from('schedule_assignments').select('*').eq('assignment_date', mostRecentDate),
         this.supabase.from('employees').select('*').eq('is_active', true),
         this.supabase.from('seats').select('*').eq('is_available', true),
         this.supabase.from('schedule_assignments').select('*').gte('created_at', lastHour)

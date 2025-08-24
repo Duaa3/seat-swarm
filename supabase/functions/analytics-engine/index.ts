@@ -514,10 +514,16 @@ class AnalyticsAI {
   // Real-time Metrics
   private calculateRealTimeMetrics(assignments: any[], employees: any[], seats: any[]) {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const thisWeek = this.getWeekRange(now);
     
-    const todayAssignments = assignments.filter(a => a.assignment_date === today);
+    // Find the most recent assignment date instead of hardcoding today
+    const assignmentDates = assignments.map(a => a.assignment_date).filter(Boolean);
+    const mostRecentDate = assignmentDates.length > 0 
+      ? assignmentDates.reduce((latest, current) => current > latest ? current : latest)
+      : now.toISOString().split('T')[0];
+
+    const thisWeek = this.getWeekRange(new Date(mostRecentDate));
+    
+    const todayAssignments = assignments.filter(a => a.assignment_date === mostRecentDate);
     const weekAssignments = assignments.filter(a => 
       a.assignment_date >= thisWeek.start && a.assignment_date <= thisWeek.end
     );
