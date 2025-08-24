@@ -610,9 +610,6 @@ const SeatingMapPage = () => {
                         </Label>
                       </div>
                     ))}
-                    {allTeams.length > 4 && (
-                      <span className="text-xs text-muted-foreground">+{allTeams.length - 4} more</span>
-                    )}
                   </div>
                 </div>
               </div>

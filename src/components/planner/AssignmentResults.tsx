@@ -201,7 +201,7 @@ const AssignmentResults: React.FC<AssignmentResultsProps> = ({
                   {unassigned.length} Unassigned Employees
                 </Badge>
                 <div className="flex flex-wrap gap-1">
-                  {unassigned.slice(0, 5).map(empId => {
+                  {unassigned.map(empId => {
                     const employee = employeeMap.get(empId);
                     return (
                       <Badge key={empId} variant="outline" className="text-xs">
@@ -209,11 +209,6 @@ const AssignmentResults: React.FC<AssignmentResultsProps> = ({
                       </Badge>
                     );
                   })}
-                  {unassigned.length > 5 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{unassigned.length - 5} more
-                    </Badge>
-                  )}
                 </div>
               </div>
             )}
@@ -234,16 +229,11 @@ const AssignmentResults: React.FC<AssignmentResultsProps> = ({
                   </div>
                 )}
                 <div className="flex flex-wrap gap-1">
-                  {unusedSeats.slice(0, 8).map(seatId => (
+                  {unusedSeats.map(seatId => (
                     <Badge key={seatId} variant="outline" className="text-xs">
                       {seatId}
                     </Badge>
                   ))}
-                  {unusedSeats.length > 8 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{unusedSeats.length - 8} more
-                    </Badge>
-                  )}
                 </div>
               </div>
             )}
