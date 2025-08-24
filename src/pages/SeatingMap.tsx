@@ -30,7 +30,6 @@ const SeatingMapPage = () => {
   const [warnings, setWarnings] = React.useState<WarningItem[]>([]);
   
   // Seating controls state
-  const [deptCap, setDeptCap] = React.useState<number>(60);
   const [clusterTeams, setClusterTeams] = React.useState<string[]>([]);
   const [solver, setSolver] = React.useState<"greedy" | "hungarian">("greedy");
   
@@ -358,16 +357,7 @@ const SeatingMapPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 sm:grid-cols-3">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="dept-cap">Department cap</Label>
-                <span className="text-sm text-muted-foreground">{deptCap}%</span>
-              </div>
-              <Slider id="dept-cap" value={[deptCap]} onValueChange={(v) => setDeptCap(v[0])} min={20} max={100} step={5} />
-              <p className="text-xs text-muted-foreground">No more than {deptCap}% of a department on the same day.</p>
-            </div>
-
+          <div className="grid gap-6 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Solver</Label>
               <div className="flex items-center gap-3">

@@ -368,8 +368,30 @@ const SchedulePage = () => {
               </CardContent>
             </Card>
 
-
-            {/* Generate Schedule Button */}
+            {/* Department Capacity */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Department Capacity</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Department cap</span>
+                    <Badge variant="outline">{deptCap}%</Badge>
+                  </div>
+                  <input
+                    type="range"
+                    min="20"
+                    max="100"
+                    step="5"
+                    value={deptCap}
+                    onChange={(e) => setDeptCap(parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">No more than {deptCap}% of a department on the same day.</p>
+                </div>
+              </CardContent>
+            </Card>
             <Button 
               onClick={handleGenerateSchedule} 
               disabled={loading || !isDataLoaded}
