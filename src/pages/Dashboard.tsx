@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmployeeConstraints } from "@/hooks/useConstraints";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { PopulateDataButton } from "@/components/PopulateDataButton";
+
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
 const ZONES = ['A', 'B', 'C', 'D'] as const;
@@ -589,7 +589,6 @@ const ManagerDashboard = () => {
             <Button onClick={handleQuickGenerate} className="w-full" variant="hero">
               Quick Generate Schedule
             </Button>
-            <PopulateDataButton />
           </CardContent>
         </Card>
 
