@@ -1,6 +1,6 @@
 // ============= Schedule and Assignment Data Hook =============
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Schedule, SeatAssignments, DayKey, Employee, Seat } from '@/types/planner';
 import { 
   getScheduleAssignments, 
@@ -209,7 +209,7 @@ export function useScheduleData() {
     }
   };
 
-  const loadScheduleForWeek = useCallback(async (weekStartDate: string) => {
+  const loadScheduleForWeek = React.useCallback(async (weekStartDate: string) => {
     try {
       setLoading(true);
       
@@ -280,7 +280,7 @@ export function useScheduleData() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast]); // Remove getScheduleAssignments from dependencies
 
   const clearSchedule = () => {
     setSchedule({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] });
@@ -288,16 +288,24 @@ export function useScheduleData() {
     setMetadata(null);
   };
 
-  // Auto-load schedule for current week on mount
-  useEffect(() => {
+  // Load schedule for current week on mount - only once
+  React.useEffect(() => {
+    let isMounted = true;
+    
     const loadCurrentWeekSchedule = async () => {
       const currentWeekStart = getCurrentWeekStart();
       console.log('Loading schedule for current week:', currentWeekStart);
-      await loadScheduleForWeek(currentWeekStart);
+      if (isMounted) {
+        await loadScheduleForWeek(currentWeekStart);
+      }
     };
 
     loadCurrentWeekSchedule();
-  }, [loadScheduleForWeek, getCurrentWeekStart]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [getCurrentWeekStart]); // Remove loadScheduleForWeek dependency to prevent loops
 
   return {
     schedule,

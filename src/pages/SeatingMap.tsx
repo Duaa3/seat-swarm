@@ -71,30 +71,6 @@ const SeatingMapPage = () => {
       };
       
       refreshSchedule();
-      
-      // Refresh when window regains focus (when user switches back from Schedule page)
-      const handleFocus = () => {
-        console.log('Window focused, refreshing schedule data');
-        refreshSchedule();
-      };
-      const handleVisibilityChange = () => {
-        if (!document.hidden) {
-          console.log('Page became visible, refreshing schedule data');
-          refreshSchedule();
-        }
-      };
-      
-      window.addEventListener('focus', handleFocus);
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      
-      // Auto-refresh every 10 seconds to catch schedule updates
-      const interval = setInterval(refreshSchedule, 10000);
-      
-      return () => {
-        window.removeEventListener('focus', handleFocus);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        clearInterval(interval);
-      };
     }
   }, [isDataLoaded, loadScheduleForWeek]);
 
