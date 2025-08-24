@@ -190,12 +190,16 @@ export function useScheduleData() {
       for (const assignment of assignments) {
         const day = assignment.day_of_week as DayKey;
         if (day in newSchedule) {
-        if (assignment.assignment_type === 'scheduled') {
-          newSchedule[day].push(assignment.employee_id);
-        }
-        if (assignment.assignment_type === 'assigned' && assignment.seat_id) {
-          newSeatAssignments[day][assignment.employee_id] = assignment.seat_id;
-        }
+          // Add to schedule if it's a scheduled assignment
+          if (assignment.assignment_type === 'scheduled' || assignment.assignment_type === 'assigned') {
+            if (!newSchedule[day].includes(assignment.employee_id)) {
+              newSchedule[day].push(assignment.employee_id);
+            }
+          }
+          // Add seat assignment if seat is present
+          if (assignment.seat_id) {
+            newSeatAssignments[day][assignment.employee_id] = assignment.seat_id;
+          }
         }
       }
       
@@ -251,6 +255,7 @@ export function useScheduleData() {
     loading,
     setSchedule,
     setAssignments,
+    setMetadata,
     saveSchedule,
     saveSeatAssignments,
     loadScheduleForWeek,

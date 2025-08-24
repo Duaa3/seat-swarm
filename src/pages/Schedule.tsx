@@ -31,7 +31,7 @@ const SchedulePage = () => {
   // Database hooks
   const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
   const { seats: dbSeats, loading: seatsLoading } = useSeats();
-  const { schedule, assignments, setSchedule, setAssignments, saveSchedule, saveSeatAssignments, clearSchedule, loading: scheduleLoading, metadata, loadScheduleForWeek } = useScheduleData();
+  const { schedule, assignments, setSchedule, setAssignments, saveSchedule, saveSeatAssignments, clearSchedule, loading: scheduleLoading, metadata, setMetadata, loadScheduleForWeek } = useScheduleData();
   const { generating, publishing, generateSchedule, publishSchedule, archiveSchedule } = useAdvancedScheduler();
 
   // UI State
@@ -87,6 +87,11 @@ const SchedulePage = () => {
         
         // Refresh the schedule data from the database
         await loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
+        
+        // Update metadata with schedule ID if available
+        if (result.schedule_id) {
+          setMetadata(prev => prev ? { ...prev, scheduleId: result.schedule_id } : null);
+        }
         
         toast({
           title: "Advanced Schedule Generated",
