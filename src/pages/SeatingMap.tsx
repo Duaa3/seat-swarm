@@ -599,7 +599,7 @@ const SeatingMapPage = () => {
                 <div className="flex items-center gap-3">
                   <Label className="text-sm font-medium whitespace-nowrap">Team Clusters:</Label>
                   <div className="flex flex-wrap gap-2">
-                    {allTeams.slice(0, 4).map(team => (
+                    {allTeams.map(team => (
                       <div key={team} className="flex items-center gap-1">
                         <Checkbox
                           id={`cluster-${team}`}
