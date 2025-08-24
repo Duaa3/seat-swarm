@@ -31,7 +31,7 @@ const SchedulePage = () => {
   // Database hooks
   const { employees: dbEmployees, loading: employeesLoading } = useEmployees();
   const { seats: dbSeats, loading: seatsLoading } = useSeats();
-  const { schedule, assignments, setSchedule, setAssignments, saveSchedule, saveSeatAssignments, clearSchedule, loading: scheduleLoading, metadata } = useScheduleData();
+  const { schedule, assignments, setSchedule, setAssignments, saveSchedule, saveSeatAssignments, clearSchedule, loading: scheduleLoading, metadata, loadScheduleForWeek } = useScheduleData();
   const { generating, publishing, generateSchedule, publishSchedule, archiveSchedule } = useAdvancedScheduler();
 
   // UI State
@@ -85,8 +85,8 @@ const SchedulePage = () => {
         setScheduleStatus('draft');
         setWarnings(result.summary.violations || []);
         
-        // The schedule data will automatically refresh through the hook
-        // No need to manually reload
+        // Refresh the schedule data from the database
+        await loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
         
         toast({
           title: "Advanced Schedule Generated",
