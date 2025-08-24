@@ -49,6 +49,8 @@ const EmployeePortal = () => {
 
   const [isEditing, setIsEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [liveUpdates, setLiveUpdates] = React.useState(true);
+  const [lastUpdate, setLastUpdate] = React.useState<Date>(new Date());
 
   // Find current employee data
   const currentEmployee = employees.find(emp => emp.id === user?.id);
@@ -86,6 +88,49 @@ const EmployeePortal = () => {
       });
     }
   }, [currentEmployee, profile, currentConstraints]);
+
+  // Real-time updates for schedule changes
+  React.useEffect(() => {
+    if (!user?.id || !liveUpdates) return;
+
+    const channel = supabase
+      .channel('schedule-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'schedule_assignments',
+          filter: `employee_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Schedule update received:', payload);
+          setLastUpdate(new Date());
+          toast({
+            title: "Schedule Updated",
+            description: "Your schedule has been updated in real-time!",
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'satisfaction_feedback',
+          filter: `employee_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Feedback update received:', payload);
+          setLastUpdate(new Date());
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, liveUpdates, toast]);
 
   // Get employee's weekly schedule
   const getEmployeeSchedule = React.useCallback((): Record<DayKey, { scheduled: boolean; seatId?: string; seatInfo?: any }> => {
@@ -282,6 +327,11 @@ const EmployeePortal = () => {
           <p className="text-muted-foreground mt-2">
             Welcome back, {formData.full_name || 'Employee'}! Manage your workspace preferences and view your schedule.
           </p>
+          {liveUpdates && (
+            <p className="text-sm text-green-600 mt-1">
+              🟢 Live updates enabled • Last update: {lastUpdate.toLocaleTimeString()}
+            </p>
+          )}
         </div>
         <Button
           onClick={isEditing ? handleSave : () => setIsEditing(true)}
@@ -300,6 +350,18 @@ const EmployeePortal = () => {
             </>
           )}
         </Button>
+        
+        {/* Real-time toggle */}
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={liveUpdates}
+            onCheckedChange={setLiveUpdates}
+            id="live-updates"
+          />
+          <Label htmlFor="live-updates" className="text-sm text-muted-foreground">
+            Live Updates
+          </Label>
+        </div>
       </div>
 
       {/* Quick Stats */}
