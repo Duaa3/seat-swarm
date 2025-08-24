@@ -129,14 +129,26 @@ export const useAuth = () => {
         if (user?.user_metadata?.role) {
           console.log('useAuth: Using role from auth metadata:', user.user_metadata.role);
           setUserRole({ role: user.user_metadata.role });
+        } else {
+          // Default to employee role if no role is found
+          console.log('useAuth: No role found, defaulting to employee');
+          setUserRole({ role: 'employee' });
         }
         return;
       }
 
       console.log('useAuth: Role fetched:', data);
-      setUserRole(data);
+      if (data) {
+        setUserRole(data);
+      } else {
+        // No role found in database, default to employee
+        console.log('useAuth: No role data found, defaulting to employee');
+        setUserRole({ role: 'employee' });
+      }
     } catch (error) {
       console.error('Error fetching user role:', error);
+      // Fallback to employee role on error
+      setUserRole({ role: 'employee' });
     }
   };
 
