@@ -56,7 +56,7 @@ function AppContent() {
       <Route path="/my-profile" element={
         <RoleBasedRoute allowedRoles={["employee"]}>
           <Layout>
-            <MyProfile />
+            <EmployeePortal />
           </Layout>
         </RoleBasedRoute>
       } />
