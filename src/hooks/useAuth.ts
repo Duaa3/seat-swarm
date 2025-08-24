@@ -27,17 +27,17 @@ export const useAuth = () => {
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('useAuth: Auth state changed', event, !!session);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Use setTimeout to prevent blocking the auth callback
-          setTimeout(() => {
-            fetchUserProfile(session.user.id);
-            fetchUserRole(session.user.id);
-          }, 0);
+          // Fetch profile and role immediately
+          await Promise.all([
+            fetchUserProfile(session.user.id),
+            fetchUserRole(session.user.id)
+          ]);
         } else {
           setProfile(null);
           setUserRole(null);
@@ -47,17 +47,17 @@ export const useAuth = () => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('useAuth: Initial session check', !!session);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Use setTimeout to prevent blocking
-        setTimeout(() => {
-          fetchUserProfile(session.user.id);
-          fetchUserRole(session.user.id);
-        }, 0);
+        // Fetch profile and role immediately
+        await Promise.all([
+          fetchUserProfile(session.user.id),
+          fetchUserRole(session.user.id)
+        ]);
       }
       setLoading(false);
     });
@@ -86,6 +86,7 @@ export const useAuth = () => {
 
   const fetchUserRole = async (userId: string) => {
     try {
+      console.log('useAuth: Fetching user role for', userId);
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -94,9 +95,16 @@ export const useAuth = () => {
 
       if (error) {
         console.error('Error fetching user role:', error);
+        // If no role found, try to get from auth metadata as fallback
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.user_metadata?.role) {
+          console.log('useAuth: Using role from auth metadata:', user.user_metadata.role);
+          setUserRole({ role: user.user_metadata.role });
+        }
         return;
       }
 
+      console.log('useAuth: Role fetched:', data);
       setUserRole(data);
     } catch (error) {
       console.error('Error fetching user role:', error);
