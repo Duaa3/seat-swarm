@@ -14,10 +14,11 @@ const getTeamColorClass = (team: string) => {
     "Ops": "team-bg-5",
     "Data": "team-bg-6",
     "QA": "team-bg-7",
-    "Security": "team-bg-8",
-    "DevOps": "team-bg-1",
-    "Product": "team-bg-2",
-    "Support": "team-bg-3",
+    "Support": "team-bg-8",
+    // Legacy teams - map to existing colors
+    "Security": "team-bg-1",
+    "DevOps": "team-bg-2",
+    "Product": "team-bg-3",
   };
   return teamMapping[team] || "team-bg-8";
 };
