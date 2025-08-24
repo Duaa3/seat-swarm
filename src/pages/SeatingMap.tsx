@@ -73,12 +73,30 @@ const SeatingMapPage = () => {
       refreshSchedule();
       
       // Refresh when window regains focus (when user switches back from Schedule page)
-      const handleFocus = () => refreshSchedule();
-      window.addEventListener('focus', handleFocus);
+      const handleFocus = () => {
+        console.log('Window focused, refreshing schedule data');
+        refreshSchedule();
+      };
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          console.log('Page became visible, refreshing schedule data');
+          refreshSchedule();
+        }
+      };
       
-      return () => window.removeEventListener('focus', handleFocus);
+      window.addEventListener('focus', handleFocus);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Auto-refresh every 10 seconds to catch schedule updates
+      const interval = setInterval(refreshSchedule, 10000);
+      
+      return () => {
+        window.removeEventListener('focus', handleFocus);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        clearInterval(interval);
+      };
     }
-  }, [isDataLoaded, selectedDay, loadScheduleForWeek]);
+  }, [isDataLoaded, loadScheduleForWeek]);
 
   // Convert seat assignments to assignments format for the current day
   const dayAssignments = React.useMemo(() => {
@@ -297,16 +315,24 @@ const SeatingMapPage = () => {
             </SelectContent>
           </Select>
           <div className="flex gap-2">
-            {(schedule[selectedDay]?.length || 0) > 0 && dayAssignments.length === 0 && (
+            {/* Always show assign button if we have scheduled employees */}
+            {(schedule[selectedDay]?.length || 0) > 0 && (
               <Button 
                 onClick={() => assignSeatsForDay(selectedDay)} 
                 disabled={loading}
                 className="bg-gradient-primary hover:bg-gradient-primary/80"
+                variant={dayAssignments.length === 0 ? "default" : "outline"}
               >
                 {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MapPin className="h-4 w-4 mr-2" />}
-                Assign Seats for {selectedDay}
+                {dayAssignments.length === 0 ? `Assign Seats for ${selectedDay}` : `Reassign Seats for ${selectedDay}`}
               </Button>
             )}
+            {/* Debug info */}
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              <span>Scheduled: {schedule[selectedDay]?.length || 0}</span>
+              <span>•</span>
+              <span>Assigned: {dayAssignments.length}</span>
+            </div>
             <Button variant="outline" onClick={exportLayout} disabled={dayAssignments.length === 0}>
               <Download className="h-4 w-4 mr-2" />
               Export
