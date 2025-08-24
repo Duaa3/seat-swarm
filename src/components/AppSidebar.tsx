@@ -1,6 +1,7 @@
 import React from "react";
-import { CalendarDays, Settings, MapPin, BarChart3, Home, Sliders, User } from "lucide-react";
+import { CalendarDays, Settings, MapPin, BarChart3, Home, Sliders, User, LogOut } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +28,11 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -73,6 +79,24 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <button 
+                    onClick={handleSignOut}
+                    className="hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground flex items-center gap-2 w-full"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {!collapsed && <span>Sign Out</span>}
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
