@@ -21,7 +21,6 @@ const getNavigationItems = (userRole: string | undefined) => {
     { title: "Employee Portal", url: "/employee-portal", icon: User, roles: ["employee"] },
     { title: "Schedule", url: "/schedule", icon: CalendarDays, roles: ["admin", "manager"] },
     { title: "Seating Map", url: "/seating", icon: MapPin, roles: ["admin", "manager"] },
-    { title: "Employee Management", url: "/employee-portal", icon: User, roles: ["admin", "manager"] },
     { title: "Analytics", url: "/analytics", icon: BarChart3, roles: ["admin", "manager"] },
     { title: "Constraints", url: "/constraints", icon: Sliders, roles: ["admin"] },
     { title: "Settings", url: "/settings", icon: Settings, roles: ["admin"] },
