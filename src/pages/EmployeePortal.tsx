@@ -269,6 +269,10 @@ const EmployeePortal = () => {
         preferred_zone: formData.preferred_zone,
         needs_accessible_seat: formData.needs_accessible,
       };
+      
+      console.log('About to save constraints:', constraintsData);
+      console.log('Current user ID:', user.id);
+      console.log('Employee business ID:', employeeBusinessId);
 
       if (currentConstraints) {
         await updateConstraints(currentConstraints.id, constraintsData);
