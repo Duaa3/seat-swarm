@@ -36,12 +36,21 @@ export function useAdvancedScheduler() {
     setGenerating(true);
     
     try {
+      console.log('Invoking advanced-scheduler with request:', request);
+      
       const { data, error } = await supabase.functions.invoke('advanced-scheduler', {
         body: request
       });
 
+      console.log('Advanced-scheduler response:', { data, error });
+
       if (error) {
-        throw new Error(error.message);
+        console.error('Supabase function error:', error);
+        throw new Error(`Function error: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('No data returned from function');
       }
 
       if (data.success) {
