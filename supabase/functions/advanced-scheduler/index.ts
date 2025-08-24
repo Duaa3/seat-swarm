@@ -73,6 +73,7 @@ interface ScheduleRequest {
   week_start: string;
   enforce_constraints: boolean;
   override_ratios?: boolean;
+  daily_capacities?: Record<string, number>; // Percentage capacity for each day
 }
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
@@ -89,7 +90,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const { week_start, enforce_constraints = true, override_ratios = false }: ScheduleRequest = await req.json();
+    const { week_start, enforce_constraints = true, override_ratios = false, daily_capacities }: ScheduleRequest = await req.json();
 
     console.log(`Generating schedule for week starting: ${week_start}`);
 
@@ -142,7 +143,8 @@ serve(async (req) => {
       attendanceHistory: attendanceHistory || [],
       weekStart: week_start,
       enforceConstraints: enforce_constraints,
-      overrideRatios: override_ratios
+      overrideRatios: override_ratios,
+      dailyCapacities: daily_capacities
     });
 
     // 3. Check for existing schedule and handle appropriately
@@ -292,7 +294,8 @@ async function generateAdvancedSchedule({
   attendanceHistory,
   weekStart,
   enforceConstraints,
-  overrideRatios
+  overrideRatios,
+  dailyCapacities
 }: {
   employees: Employee[];
   seats: Seat[];
@@ -304,6 +307,7 @@ async function generateAdvancedSchedule({
   weekStart: string;
   enforceConstraints: boolean;
   overrideRatios: boolean;
+  dailyCapacities?: Record<string, number>;
 }) {
   const schedule = {
     daily_schedules: {} as Record<string, string[]>,
@@ -378,11 +382,21 @@ async function generateAdvancedSchedule({
       !clientSiteAssignments.has(`${emp.id}_${day}`)
     );
 
-    // Calculate capacity for this day
-    const maxCapacity = Math.min(
-      constraints.floor_1_capacity + constraints.floor_2_capacity,
-      availableEmployees.length
-    );
+    // Calculate capacity for this day using dailyCapacities if provided
+    let maxCapacity;
+    if (dailyCapacities && dailyCapacities[day]) {
+      // Use the percentage from UI and calculate based on total seats
+      const capacityPercentage = dailyCapacities[day] / 100;
+      maxCapacity = Math.floor(seats.length * capacityPercentage);
+    } else {
+      // Fallback to database constraints
+      maxCapacity = Math.min(
+        constraints.floor_1_capacity + constraints.floor_2_capacity,
+        availableEmployees.length
+      );
+    }
+    
+    maxCapacity = Math.min(maxCapacity, availableEmployees.length);
 
     // Score each employee for office attendance on this day
     const employeeScores = availableEmployees.map(emp => {

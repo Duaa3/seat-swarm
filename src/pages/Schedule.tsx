@@ -78,7 +78,8 @@ const SchedulePage = () => {
       const result = await generateSchedule({
         week_start: weekStart.toISOString().split('T')[0],
         enforce_constraints: true,
-        override_ratios: false
+        override_ratios: false,
+        daily_capacities: dayCaps
       });
 
       if (result.success && result.summary) {

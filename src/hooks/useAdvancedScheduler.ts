@@ -6,6 +6,7 @@ export interface ScheduleGenerationRequest {
   week_start: string;
   enforce_constraints?: boolean;
   override_ratios?: boolean;
+  daily_capacities?: Record<string, number>;
 }
 
 export interface ScheduleGenerationResult {
