@@ -218,6 +218,24 @@ const EmployeePortal = () => {
     try {
       // Update employee data
       if (currentEmployee) {
+        // Ensure onsite_ratio is set based on work mode if it's null
+        let onsiteRatio = currentEmployee.onsite_ratio;
+        if (onsiteRatio === null) {
+          switch (formData.preferred_work_mode) {
+            case 'onsite':
+              onsiteRatio = 0.8;
+              break;
+            case 'hybrid':
+              onsiteRatio = 0.5;
+              break;
+            case 'remote':
+              onsiteRatio = 0.2;
+              break;
+            default:
+              onsiteRatio = 0.5;
+          }
+        }
+
         await updateEmployee(currentEmployee.id, {
           full_name: formData.full_name,
           department: formData.department,
@@ -227,6 +245,7 @@ const EmployeePortal = () => {
           needs_accessible: formData.needs_accessible,
           preferred_zone: formData.preferred_zone,
           preferred_days: formData.preferred_days,
+          onsite_ratio: onsiteRatio,
         });
       }
 
@@ -236,6 +255,21 @@ const EmployeePortal = () => {
       if (!employeeBusinessId && profile) {
         // Create employee record if it doesn't exist
         const newEmployeeId = `E${Date.now().toString().slice(-3)}${Math.random().toString(36).slice(2, 4).toUpperCase()}`;
+        
+        // Set onsite_ratio based on work mode
+        let newOnsiteRatio = 0.5; // default
+        switch (formData.preferred_work_mode) {
+          case 'onsite':
+            newOnsiteRatio = 0.8;
+            break;
+          case 'hybrid':
+            newOnsiteRatio = 0.5;
+            break;
+          case 'remote':
+            newOnsiteRatio = 0.2;
+            break;
+        }
+        
         const { data: newEmployee, error: employeeError } = await supabase
           .from('employees')
           .insert({
@@ -248,6 +282,7 @@ const EmployeePortal = () => {
             needs_accessible: formData.needs_accessible,
             preferred_zone: formData.preferred_zone,
             preferred_days: formData.preferred_days,
+            onsite_ratio: newOnsiteRatio,
           })
           .select()
           .single();
