@@ -26,9 +26,40 @@ export const useAuth = () => {
     console.log('useAuth: Setting up auth listener');
     let isMounted = true;
     
+    const initializeAuth = async () => {
+      try {
+        // Check for existing session first
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+        
+        console.log('useAuth: Initial session check', !!session);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch profile and role
+          await fetchUserProfile(session.user.id);
+          await fetchUserRole(session.user.id);
+        } else {
+          setProfile(null);
+          setUserRole(null);
+        }
+        
+        if (isMounted) {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!isMounted) return;
         
         console.log('useAuth: Auth state changed', event, !!session);
@@ -36,15 +67,13 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch profile and role immediately
-          try {
-            await Promise.all([
-              fetchUserProfile(session.user.id),
-              fetchUserRole(session.user.id)
-            ]);
-          } catch (error) {
-            console.error('Error fetching user data:', error);
-          }
+          // Use setTimeout to avoid blocking the auth state change
+          setTimeout(() => {
+            if (isMounted) {
+              fetchUserProfile(session.user.id);
+              fetchUserRole(session.user.id);
+            }
+          }, 0);
         } else {
           setProfile(null);
           setUserRole(null);
@@ -56,30 +85,8 @@ export const useAuth = () => {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!isMounted) return;
-      
-      console.log('useAuth: Initial session check', !!session);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        // Fetch profile and role immediately
-        try {
-          await Promise.all([
-            fetchUserProfile(session.user.id),
-            fetchUserRole(session.user.id)
-          ]);
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-        }
-      }
-      
-      if (isMounted) {
-        setLoading(false);
-      }
-    });
+    // Initialize auth
+    initializeAuth();
 
     return () => {
       isMounted = false;
