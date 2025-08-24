@@ -8,12 +8,18 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, RefreshCw, Download, Upload, Bell, Shield, Globe, Building } from "lucide-react";
+import { Loader2, Save, RefreshCw, Download, Upload, Bell, Shield, Globe, Building, Send } from "lucide-react";
 import { useSettings, type SystemSettings } from "@/hooks/useSettings";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Settings = () => {
   const { settings, loading, updating, updateSettings, resetToDefaults, exportSettings, importSettings } = useSettings();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [sendingEmail, setSendingEmail] = React.useState(false);
 
   const { register, handleSubmit, watch, setValue, reset } = useForm<Partial<SystemSettings>>({
     defaultValues: settings || undefined,
@@ -62,6 +68,43 @@ const Settings = () => {
       ? currentDays.filter(d => d !== day)
       : [...currentDays, day];
     setValue('working_days', newDays);
+  };
+
+  const handleTestEmail = async () => {
+    if (!user?.email) {
+      toast({
+        title: "Error",
+        description: "No email address found for testing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-test-email', {
+        body: { 
+          email: user.email,
+          type: 'test'
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Test Email Sent! 📧",
+        description: `Check your inbox at ${user.email}`,
+      });
+    } catch (error: any) {
+      console.error('Error sending test email:', error);
+      toast({
+        title: "Email Test Failed",
+        description: error.message || "Failed to send test email. Check your email settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   if (loading) {
@@ -169,6 +212,27 @@ const Settings = () => {
                 checked={watchedValues.email_notifications || false} 
                 onCheckedChange={(checked) => setValue("email_notifications", checked)} 
               />
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t">
+              <div className="space-y-0.5">
+                <Label>Test Email Notifications</Label>
+                <p className="text-sm text-muted-foreground">Send a test email to verify configuration</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleTestEmail}
+                disabled={sendingEmail || !watchedValues.email_notifications}
+              >
+                {sendingEmail ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4 mr-2" />
+                )}
+                {sendingEmail ? "Sending..." : "Send Test"}
+              </Button>
             </div>
           </CardContent>
         </Card>

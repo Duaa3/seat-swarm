@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.assign-seats]
 verify_jwt = false
+
+[functions.send-test-email]
+verify_jwt = false
