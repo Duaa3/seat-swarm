@@ -206,13 +206,17 @@ serve(async (req) => {
       // First save scheduled employees (those assigned to come to office)
       const scheduledEmployees = schedule.daily_schedules[day] || [];
       for (const employeeId of scheduledEmployees) {
+        const rawScore = schedule.assignment_scores[day]?.[employeeId] || 0;
+        // Clamp confidence score to 0-1 range
+        const confidence_score = Math.max(0, Math.min(1, rawScore / 100));
+        
         allAssignments.push({
           employee_id: employeeId,
           assignment_date: dateStr,
           day_of_week: day,
           assignment_type: 'scheduled',
           model_version: 'advanced-scheduler-v1',
-          confidence_score: schedule.assignment_scores[day]?.[employeeId] || 0,
+          confidence_score,
           constraints_met: schedule.assignment_reasons[day]?.[employeeId] || {}
         });
       }
