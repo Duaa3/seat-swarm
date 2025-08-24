@@ -91,8 +91,7 @@ export function useAdvancedScheduler() {
         .from('schedules')
         .update({
           status: 'published',
-          published_at: new Date().toISOString(),
-          published_by: 'system' // In a real app, this would be the current user
+          published_at: new Date().toISOString()
         })
         .eq('id', scheduleId);
 
