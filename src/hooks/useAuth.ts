@@ -38,9 +38,11 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch profile and role
-          await fetchUserProfile(session.user.id);
-          await fetchUserRole(session.user.id);
+          // Keep loading true while fetching profile and role
+          await Promise.all([
+            fetchUserProfile(session.user.id),
+            fetchUserRole(session.user.id)
+          ]);
         } else {
           setProfile(null);
           setUserRole(null);
@@ -59,21 +61,26 @@ export const useAuth = () => {
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (!isMounted) return;
         
         console.log('useAuth: Auth state changed', event, !!session);
+        
+        // Set loading to true when auth state changes
+        setLoading(true);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Use setTimeout to avoid blocking the auth state change
-          setTimeout(() => {
-            if (isMounted) {
-              fetchUserProfile(session.user.id);
-              fetchUserRole(session.user.id);
-            }
-          }, 0);
+          // Fetch profile and role data before setting loading to false
+          try {
+            await Promise.all([
+              fetchUserProfile(session.user.id),
+              fetchUserRole(session.user.id)
+            ]);
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+          }
         } else {
           setProfile(null);
           setUserRole(null);
