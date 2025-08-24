@@ -16,6 +16,7 @@ import { useEmployeeConstraints } from "@/hooks/useConstraints";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeActivity } from "@/hooks/useRealtimeActivity";
+import { useScheduleData } from "@/hooks/useScheduleData";
 
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
@@ -476,13 +477,30 @@ const ManagerDashboard = () => {
   const { employees, loading: employeesLoading } = useEmployees();
   const { seats, loading: seatsLoading } = useSeats();
   const { activities, loading: activitiesLoading } = useRealtimeActivity();
+  const { schedule, assignments, metadata } = useScheduleData();
 
-  const stats = React.useMemo(() => ({
-    totalEmployees: employees.length,
-    totalSeats: seats.length,
-    occupancyRate: employees.length > 0 ? Math.round((employees.length / Math.max(seats.length, 1)) * 100) : 0,
-    activeTeams: [...new Set(employees.map(emp => emp.team))].length,
-  }), [employees, seats]);
+  // Calculate actual occupancy based on current schedule
+  const stats = React.useMemo(() => {
+    const totalEmployees = employees.length;
+    const totalSeats = seats.length;
+    
+    // Calculate current week's average occupancy from scheduled employees
+    const weeklyScheduled = Object.values(schedule).flat();
+    const uniqueScheduledEmployees = [...new Set(weeklyScheduled)].length;
+    const dailyAverageScheduled = weeklyScheduled.length / 5; // 5 working days
+    
+    // Occupancy = average daily scheduled employees / total available seats
+    const occupancyRate = totalSeats > 0 ? Math.round((dailyAverageScheduled / totalSeats) * 100) : 0;
+    
+    return {
+      totalEmployees,
+      totalSeats,
+      occupancyRate: Math.min(occupancyRate, 100), // Cap at 100%
+      activeTeams: [...new Set(employees.map(emp => emp.team))].length,
+      scheduledThisWeek: uniqueScheduledEmployees,
+      averageDailyOccupancy: dailyAverageScheduled
+    };
+  }, [employees, seats, schedule]);
 
   const quickActions = [
     { title: "Generate Schedule", path: "/schedule", icon: Calendar, color: "bg-primary" },
