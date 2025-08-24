@@ -70,13 +70,15 @@ const Analytics = () => {
         setAnalyticsLoading(true);
         console.log('Loading assignment data...');
         
-        // Get assignments from the last 30 days
-        const endDate = new Date().toISOString().split('T')[0];
+        // Get assignments from the last 30 days and next 7 days (to include current/future schedules)
+        const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         
         const assignmentData = await getScheduleAssignments(startDate, endDate);
         console.log('Loaded assignment data:', assignmentData);
-        setAssignments(assignmentData);
+        console.log('Assignment count:', assignmentData?.length || 0);
+        console.log('Sample assignment:', assignmentData?.[0]);
+        setAssignments(assignmentData || []);
         
       } catch (error) {
         console.error('Error loading basic data:', error);
@@ -99,7 +101,12 @@ const Analytics = () => {
   const stats = React.useMemo(() => {
     if (!hasData) return null;
 
-    console.log('Computing analytics with:', { employees: employees.length, seats: seats.length, assignments: assignments.length });
+    console.log('Computing analytics with:', { 
+      employees: employees.length, 
+      seats: seats.length, 
+      assignments: assignments.length,
+      assignmentsSample: assignments[0]
+    });
 
     // Real analytics based on actual data
     const analyticsData = (() => {
