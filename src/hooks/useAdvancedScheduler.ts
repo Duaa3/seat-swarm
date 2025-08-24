@@ -90,7 +90,7 @@ export function useAdvancedScheduler() {
       const { error } = await supabase
         .from('schedules')
         .update({
-          status: 'published',
+          status: 'final',
           published_at: new Date().toISOString()
         })
         .eq('id', scheduleId);

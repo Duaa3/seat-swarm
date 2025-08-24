@@ -42,7 +42,7 @@ const SchedulePage = () => {
   const [solver, setSolver] = React.useState<"greedy" | "hungarian">("greedy");
   const [weights, setWeights] = React.useState<Weights>(DEFAULT_WEIGHTS);
   const [warnings, setWarnings] = React.useState<any[]>([]);
-  const [scheduleStatus, setScheduleStatus] = React.useState<'draft' | 'published' | 'archived'>('draft');
+  const [scheduleStatus, setScheduleStatus] = React.useState<'draft' | 'final'>('draft');
   const [enableDragDrop, setEnableDragDrop] = React.useState(false);
   const [conflictMonitorEnabled, setConflictMonitorEnabled] = React.useState(true);
 
@@ -121,7 +121,7 @@ const SchedulePage = () => {
 
     const success = await publishSchedule(metadata.scheduleId);
     if (success) {
-      setScheduleStatus('published');
+      setScheduleStatus('final');
     }
   };
 
@@ -135,10 +135,12 @@ const SchedulePage = () => {
       return;
     }
 
-    const success = await archiveSchedule(metadata.scheduleId);
-    if (success) {
-      setScheduleStatus('archived');
-    }
+    // Archive functionality not supported - only draft and final status allowed
+    toast({
+      title: "Archive not supported",
+      description: "Only draft and final status are supported.",
+      variant: "destructive"
+    });
   };
 
   // Seat assignment moved to SeatingMap page
@@ -221,7 +223,7 @@ const SchedulePage = () => {
           {/* Schedule Status Badge */}
           {metadata?.scheduleId && (
             <Badge 
-              variant={scheduleStatus === 'published' ? 'default' : scheduleStatus === 'archived' ? 'secondary' : 'outline'}
+              variant={scheduleStatus === 'final' ? 'default' : 'outline'}
               className="capitalize"
             >
               <Clock className="h-3 w-3 mr-1" />
@@ -247,16 +249,6 @@ const SchedulePage = () => {
               </Button>
             )}
             
-            {metadata?.scheduleId && scheduleStatus === 'published' && (
-              <Button 
-                variant="outline" 
-                onClick={handleArchiveSchedule}
-                className="border-orange-300 text-orange-600 hover:bg-orange-50"
-              >
-                <Archive className="h-4 w-4 mr-2" />
-                Archive
-              </Button>
-            )}
             
             <Button variant="secondary" onClick={handleSave}>
               <Save className="h-4 w-4 mr-2" />
@@ -432,7 +424,7 @@ const SchedulePage = () => {
               employees={legacyEmployees}
               selectedDay={selectedDay}
               onScheduleChange={setSchedule}
-              readOnly={scheduleStatus === 'published'}
+              readOnly={scheduleStatus === 'final'}
             />
           ) : (
             <CalendarView
