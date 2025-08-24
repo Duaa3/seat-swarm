@@ -639,13 +639,54 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { timeframe = 'week' } = await req.json();
+    const { timeframe = 'week' } = await req.json().catch(() => ({ timeframe: 'week' }));
 
+    console.log('Analytics request for timeframe:', timeframe);
+
+    // Check for cached analytics first
+    const { data: cachedData } = await supabase
+      .from('analytics_cache')
+      .select('*')
+      .eq('timeframe', timeframe)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (cachedData) {
+      console.log('Returning cached analytics data');
+      return new Response(JSON.stringify({
+        success: true,
+        data: cachedData.analytics_data,
+        cached: true,
+        computed_at: cachedData.computed_at
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Computing fresh analytics...');
     const analyticsAI = new AnalyticsAI(supabase);
     const results = await analyticsAI.processAnalytics(timeframe);
 
+    // Cache the results for 30 minutes
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    
+    await supabase
+      .from('analytics_cache')
+      .upsert({
+        timeframe,
+        analytics_data: results,
+        expires_at: expiresAt.toISOString()
+      });
+
+    console.log('Analytics computed and cached successfully');
+
     return new Response(
-      JSON.stringify({ success: true, data: results }),
+      JSON.stringify({ 
+        success: true, 
+        data: results,
+        cached: false,
+        computed_at: new Date().toISOString()
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

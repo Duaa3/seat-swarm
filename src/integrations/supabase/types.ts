@@ -59,6 +59,33 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_cache: {
+        Row: {
+          analytics_data: Json
+          computed_at: string
+          created_at: string
+          expires_at: string
+          id: string
+          timeframe: string
+        }
+        Insert: {
+          analytics_data: Json
+          computed_at?: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          timeframe: string
+        }
+        Update: {
+          analytics_data?: Json
+          computed_at?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          timeframe?: string
+        }
+        Relationships: []
+      }
       assignment_changes: {
         Row: {
           change_reason: string | null

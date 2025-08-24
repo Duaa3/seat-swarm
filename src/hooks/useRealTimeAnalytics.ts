@@ -95,6 +95,27 @@ export function useRealTimeAnalytics() {
       setError(null);
 
       console.log('Fetching analytics for timeframe:', timeframe);
+      
+      // First try to get cached data from database
+      const { data: cachedData, error: cacheError } = await supabase
+        .from('analytics_cache')
+        .select('*')
+        .eq('timeframe', timeframe)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+
+      if (cachedData && !cacheError) {
+        console.log('Using cached analytics data from database');
+        const analyticsData = cachedData.analytics_data as unknown as AnalyticsData;
+        setAnalyticsData(analyticsData);
+        if (analyticsData?.realTimeMetrics) {
+          setRealTimeMetrics(analyticsData.realTimeMetrics);
+        }
+        return;
+      }
+
+      // If no cached data, call the analytics engine
+      console.log('No cached data found, calling analytics engine...');
       const { data, error: analyticsError } = await supabase.functions.invoke('analytics-engine', {
         body: { timeframe }
       });
