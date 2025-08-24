@@ -161,49 +161,109 @@ const SeatingMapPage = () => {
 
     try {
       setAssignLoading(true);
+      
+      console.log(`🎯 Starting seat assignment for ${day}`);
+      console.log(`📊 Total employees to assign: ${ids.length}`);
+      console.log(`🏢 Available seats: Floor 1: ${floor1Seats.length}, Floor 2: ${floor2Seats.length}`);
+      console.log(`👥 Teams to cluster: ${clusterTeams}`);
 
-      // Greedy seat assignment (group clustered teams together by floor when possible)
+      // Enhanced seat assignment with better team clustering
       const dayAssign: Record<string, string> = {};
 
-      // Try place clustered teams on same floor
-      const clusteredIds = ids.filter((id) => clusterTeams.includes(legacyEmployees.find((e) => e.id === id)?.team || ""));
+      // Analyze team clustering opportunities
+      const clusteredIds = ids.filter((id) => {
+        const emp = legacyEmployees.find((e) => e.id === id);
+        return emp && clusterTeams.includes(emp.team);
+      });
+      
       const nonClusteredIds = ids.filter((id) => !clusteredIds.includes(id));
+      
+      console.log(`🔗 Clustered employees: ${clusteredIds.length}`, clusteredIds);
+      console.log(`🔸 Non-clustered employees: ${nonClusteredIds.length}`, nonClusteredIds);
 
-      // Heuristic: choose floor with more free seats for clusters
-      const dayTotal = ids.length;
-      const floor1Cap = floor1Seats.length;
-      const floor2Cap = floor2Seats.length;
-
-      let f1Slots = Math.min(floor1Cap, Math.ceil(dayTotal / 2));
-      let f2Slots = Math.min(floor2Cap, dayTotal - f1Slots);
-
-      const placeList = (list: string[], seatsPool: string[]) => {
-        for (let i = 0; i < list.length && i < seatsPool.length; i++) {
-          dayAssign[list[i]] = seatsPool[i];
+      // Group clustered employees by team
+      const teamGroups: Record<string, string[]> = {};
+      clusteredIds.forEach(id => {
+        const emp = legacyEmployees.find(e => e.id === id);
+        if (emp && clusterTeams.includes(emp.team)) {
+          if (!teamGroups[emp.team]) teamGroups[emp.team] = [];
+          teamGroups[emp.team].push(id);
         }
-        // remove used
-        return seatsPool.slice(list.length);
+      });
+
+      console.log(`👥 Team groups:`, teamGroups);
+
+      // Enhanced seat assignment strategy
+      let f1Seats = [...floor1Seats.map(s => s.id)];
+      let f2Seats = [...floor2Seats.map(s => s.id)];
+
+      // Sort seats by proximity (adjacent seats first for each floor)
+      const sortSeatsByProximity = (seats: string[]) => {
+        return seats.sort((a, b) => {
+          const aNum = parseInt(a.replace(/[^0-9]/g, ''));
+          const bNum = parseInt(b.replace(/[^0-9]/g, ''));
+          return aNum - bNum;
+        });
       };
 
-      let f1Seats = floor1Seats.map((s) => s.id);
-      let f2Seats = floor2Seats.map((s) => s.id);
+      f1Seats = sortSeatsByProximity(f1Seats);
+      f2Seats = sortSeatsByProximity(f2Seats);
 
-      // Place clusters first on the larger slot floor
-      const f1First = f1Slots >= f2Slots;
-      if (f1First) {
-        f1Seats = placeList(clusteredIds, f1Seats);
-        f2Seats = placeList(nonClusteredIds, f2Seats);
-      } else {
-        f2Seats = placeList(clusteredIds, f2Seats);
-        f1Seats = placeList(nonClusteredIds, f1Seats);
+      // Assign teams to floors trying to keep them together
+      let assignedCount = 0;
+      
+      // First pass: Assign each team to the floor with more available seats
+      for (const [teamName, teamMembers] of Object.entries(teamGroups)) {
+        if (teamMembers.length === 0) continue;
+        
+        console.log(`🏢 Assigning team ${teamName} (${teamMembers.length} members)`);
+        
+        // Choose floor with more available seats
+        const useFloor1 = f1Seats.length >= f2Seats.length;
+        const targetSeats = useFloor1 ? f1Seats : f2Seats;
+        
+        // Assign team members to adjacent seats on chosen floor
+        const seatsToAssign = Math.min(teamMembers.length, targetSeats.length);
+        for (let i = 0; i < seatsToAssign; i++) {
+          dayAssign[teamMembers[i]] = targetSeats[i];
+          assignedCount++;
+        }
+        
+        // Remove used seats
+        if (useFloor1) {
+          f1Seats = f1Seats.slice(seatsToAssign);
+        } else {
+          f2Seats = f2Seats.slice(seatsToAssign);
+        }
+        
+        console.log(`✅ Assigned ${seatsToAssign}/${teamMembers.length} members of ${teamName} to ${useFloor1 ? 'Floor 1' : 'Floor 2'}`);
       }
 
-      // Fill remaining employees
-      const remaining = ids.filter((id) => !dayAssign[id]);
+      // Second pass: Assign remaining clustered employees
+      const remainingClusteredIds = clusteredIds.filter(id => !dayAssign[id]);
       const allRemainingSeats = [...f1Seats, ...f2Seats];
-      for (let i = 0; i < remaining.length && i < allRemainingSeats.length; i++) {
-        dayAssign[remaining[i]] = allRemainingSeats[i];
+      
+      for (let i = 0; i < remainingClusteredIds.length && i < allRemainingSeats.length; i++) {
+        dayAssign[remainingClusteredIds[i]] = allRemainingSeats[i];
+        assignedCount++;
       }
+
+      // Remove assigned seats
+      remainingClusteredIds.forEach(id => {
+        const seatId = dayAssign[id];
+        if (seatId) {
+          const seatIndex = allRemainingSeats.indexOf(seatId);
+          if (seatIndex > -1) allRemainingSeats.splice(seatIndex, 1);
+        }
+      });
+
+      // Third pass: Assign non-clustered employees to remaining seats
+      for (let i = 0; i < nonClusteredIds.length && i < allRemainingSeats.length; i++) {
+        dayAssign[nonClusteredIds[i]] = allRemainingSeats[i];
+        assignedCount++;
+      }
+
+      console.log(`📋 Assignment complete: ${assignedCount}/${ids.length} employees assigned`);
 
       // Save assignments to database
       const today = new Date();
@@ -213,24 +273,47 @@ const SeatingMapPage = () => {
 
       await saveSeatAssignments(dayAssign, day, dbSeats, dbEmployees, assignmentDate.toISOString().split('T')[0]);
 
-      // Generate warnings
+      // Enhanced warnings with clustering analysis
       const warns: WarningItem[] = [];
-      // Capacity per floor
+      
+      // Capacity warnings
       const f1Assigned = Object.values(dayAssign).filter((sid) => sid.startsWith("F1")).length;
       const f2Assigned = Object.values(dayAssign).filter((sid) => sid.startsWith("F2")).length;
-      if (f1Assigned > floor1Cap) warns.push({ day, rule: "Floor 1 capacity exceeded", severity: "error" });
-      if (f2Assigned > floor2Cap) warns.push({ day, rule: "Floor 2 capacity exceeded", severity: "error" });
+      
+      if (f1Assigned > floor1Seats.length) {
+        warns.push({ day, rule: "Floor 1 capacity exceeded", severity: "error" });
+      }
+      if (f2Assigned > floor2Seats.length) {
+        warns.push({ day, rule: "Floor 2 capacity exceeded", severity: "error" });
+      }
 
-      // Cluster rule
-      for (const t of clusterTeams) {
-        const members = ids.filter((id) => legacyEmployees.find((e) => e.id === id)?.team === t);
-        if (members.length > 1) {
-          const floors = new Set(members.map((id) => (dayAssign[id] || "").slice(0, 2)));
-          if (floors.size > 1) {
-            warns.push({ day, rule: "Cluster split across floors", details: `${t} team not seated together`, severity: "warn" });
+      // Team clustering analysis
+      let clusteredTeamsSuccessful = 0;
+      let clusteredTeamsTotal = 0;
+      
+      for (const teamName of clusterTeams) {
+        const teamMembers = ids.filter((id) => legacyEmployees.find((e) => e.id === id)?.team === teamName);
+        if (teamMembers.length > 1) {
+          clusteredTeamsTotal++;
+          const assignedSeats = teamMembers.map(id => dayAssign[id]).filter(Boolean);
+          const floors = new Set(assignedSeats.map(seatId => seatId.slice(0, 2)));
+          
+          if (floors.size === 1) {
+            clusteredTeamsSuccessful++;
+            console.log(`✅ Team ${teamName} successfully clustered on ${Array.from(floors)[0]}`);
+          } else {
+            warns.push({ 
+              day, 
+              rule: "Cluster split across floors", 
+              details: `${teamName} team split across ${floors.size} floors`, 
+              severity: "warn" 
+            });
+            console.log(`⚠️ Team ${teamName} split across floors:`, Array.from(floors));
           }
         }
       }
+
+      console.log(`🎯 Clustering success rate: ${clusteredTeamsSuccessful}/${clusteredTeamsTotal} teams`);
 
       setWarnings(warns);
 
@@ -239,7 +322,13 @@ const SeatingMapPage = () => {
       weekStart.setDate(today.getDate() - today.getDay() + 1);
       await loadScheduleForWeek(weekStart.toISOString().split('T')[0]);
 
-      toast({ title: "Seats assigned", description: `Assigned ${Object.keys(dayAssign).length} seats for ${day}.` });
+      const successMessage = `Assigned ${Object.keys(dayAssign).length} seats for ${day}`;
+      const clusterMessage = clusteredTeamsTotal > 0 ? ` (${clusteredTeamsSuccessful}/${clusteredTeamsTotal} teams clustered successfully)` : '';
+      
+      toast({ 
+        title: "Seats assigned", 
+        description: successMessage + clusterMessage
+      });
     } catch (error) {
       toast({ 
         title: "Error", 
