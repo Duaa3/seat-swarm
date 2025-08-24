@@ -98,6 +98,14 @@ const Analytics = () => {
     return () => clearTimeout(timer);
   }, [hasData, employees.length, seats.length]);
 
+  // Auto-fetch analytics when data is available
+  React.useEffect(() => {
+    if (hasData && assignments.length > 0 && !aiLoading && !analyticsData) {
+      console.log('Auto-fetching analytics for initial load...');
+      fetchAnalytics(selectedPeriod);
+    }
+  }, [hasData, assignments.length, aiLoading, analyticsData, fetchAnalytics, selectedPeriod]);
+
   // All computed stats using useMemo
   const stats = React.useMemo(() => {
     if (!hasData) return null;
