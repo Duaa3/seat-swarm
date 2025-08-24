@@ -14,7 +14,6 @@ import Settings from "./pages/Settings";
 import Constraints from "./pages/Constraints";
 import NotFound from "./pages/NotFound";
 import EmployeePortal from "./pages/EmployeePortal";
-import MyProfile from "./pages/MyProfile";
 import { useAuth } from "./hooks/useAuth";
 import { RoleBasedRoute } from "./components/RoleBasedRoute";
 
@@ -46,14 +45,14 @@ function AppContent() {
       
       {/* Protected Routes */}
       <Route path="/dashboard" element={
-        <RoleBasedRoute allowedRoles={["admin", "manager", "employee"]}>
+        <RoleBasedRoute allowedRoles={["admin", "manager"]}>
           <Layout>
             <Dashboard />
           </Layout>
         </RoleBasedRoute>
       } />
       
-      <Route path="/my-profile" element={
+      <Route path="/employee-portal" element={
         <RoleBasedRoute allowedRoles={["employee"]}>
           <Layout>
             <EmployeePortal />
@@ -81,14 +80,6 @@ function AppContent() {
         <RoleBasedRoute allowedRoles={["admin", "manager"]}>
           <Layout>
             <Analytics />
-          </Layout>
-        </RoleBasedRoute>
-      } />
-      
-      <Route path="/employee-portal" element={
-        <RoleBasedRoute allowedRoles={["employee"]}>
-          <Layout>
-            <EmployeePortal />
           </Layout>
         </RoleBasedRoute>
       } />
