@@ -23,7 +23,7 @@ import {
 import { useScheduleData } from "@/hooks/useScheduleData";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useSeats } from "@/hooks/useSeats";
-import { MapPin, Users, RefreshCw, Download, Loader2, Sliders, RotateCcw } from "lucide-react";
+import { MapPin, Users, RefreshCw, Download, Loader2, Sliders, RotateCcw, Building, Building2 } from "lucide-react";
 
 const SeatingMapPage = () => {
   const [selectedDay, setSelectedDay] = React.useState<DayKey>("Wed");
@@ -358,261 +358,317 @@ const SeatingMapPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Seating Map</h1>
-          <p className="text-muted-foreground mt-2">
-            Visualize seat assignments from the Schedule page
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Select value={selectedDay} onValueChange={(value: DayKey) => setSelectedDay(value)}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DAYS.map(day => (
-                <SelectItem key={day} value={day}>{day}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            {/* Always show assign button if we have scheduled employees */}
-            {(schedule[selectedDay]?.length || 0) > 0 && (
-              <Button 
-                onClick={() => assignSeatsForDay(selectedDay)} 
-                disabled={loading}
-                className="bg-gradient-primary hover:bg-gradient-primary/80"
-              >
-                {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MapPin className="h-4 w-4 mr-2" />}
-                Assign Seats for {selectedDay}
-              </Button>
-            )}
+    <div className="min-h-screen bg-background">
+      {/* Header Section */}
+      <div className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                <MapPin className="inline h-8 w-8 mr-2 text-primary" />
+                Seating Map
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Visualize and manage seat assignments for scheduled employees
+              </p>
+            </div>
             
-            {/* Clear button - only show if there are assignments */}
-            {dayAssignments.length > 0 && (
+            <div className="flex items-center gap-3">
+              <Select value={selectedDay} onValueChange={(value: DayKey) => setSelectedDay(value)}>
+                <SelectTrigger className="w-32 bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-md z-50">
+                  {DAYS.map(day => (
+                    <SelectItem key={day} value={day} className="hover:bg-accent">
+                      {day}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
               <Button 
                 variant="outline" 
-                onClick={handleClearAssignments}
+                size="sm"
+                onClick={handleRefreshData}
                 disabled={loading}
-                className="border-red-300 text-red-600 hover:bg-red-50"
               >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Clear Assignments
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               </Button>
-            )}
-            
-            {/* Debug info */}
-            <div className="text-xs text-muted-foreground flex items-center gap-2">
-              <span>Scheduled: {schedule[selectedDay]?.length || 0}</span>
-              <span>•</span>
-              <span>Assigned: {dayAssignments.length}</span>
             </div>
-            <Button variant="outline" onClick={exportLayout} disabled={dayAssignments.length === 0}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleRefreshData}
-              disabled={loading}
-            >
-              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Refresh Data
-            </Button>
-           </div>
+          </div>
         </div>
       </div>
 
-      {/* Seating Controls */}
-      <Card className="shadow-glow">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sliders className="h-5 w-5" />
-            Seating Controls
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Solver</Label>
+      <div className="container mx-auto px-6 py-6 space-y-6">
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-5">
+          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+            <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <span className={`text-xs ${solver === "greedy" ? "font-semibold text-foreground" : "text-muted-foreground"}`}>Greedy</span>
-                <Switch checked={solver === "hungarian"} onCheckedChange={(c) => setSolver(c ? "hungarian" : "greedy")} />
-                <span className={`text-xs ${solver === "hungarian" ? "font-semibold text-foreground" : "text-muted-foreground"}`}>Hungarian</span>
+                <div className="p-2 bg-blue-500 rounded-lg">
+                  <Users className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-blue-700 font-medium">Scheduled</p>
+                  <p className="text-2xl font-bold text-blue-900">{dayStats.scheduled}</p>
+                </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500 rounded-lg">
+                  <MapPin className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-green-700 font-medium">Assigned</p>
+                  <p className="text-2xl font-bold text-green-900">{dayStats.assigned}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-500 rounded-lg">
+                  <Users className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-orange-700 font-medium">Unassigned</p>
+                  <p className="text-2xl font-bold text-orange-900">{dayStats.unassigned}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-500 rounded-lg">
+                  <Building className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-purple-700 font-medium">Floor 1</p>
+                  <p className="text-2xl font-bold text-purple-900">
+                    {dayStats.floor1.assigned}/{dayStats.floor1.total}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-r from-teal-50 to-teal-100 border-teal-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-teal-500 rounded-lg">
+                  <Building2 className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-teal-700 font-medium">Floor 2</p>
+                  <p className="text-2xl font-bold text-teal-900">
+                    {dayStats.floor2.assigned}/{dayStats.floor2.total}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            <div className="space-y-2">
-              <Label>Team clusters</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {allTeams.slice(0, 6).map((t) => (
-                  <label key={t} className="flex items-center gap-2 rounded-md border p-2">
-                    <Checkbox
-                      checked={clusterTeams.includes(t)}
-                      onCheckedChange={(c) => {
-                        const next = new Set(clusterTeams);
-                        if (c) next.add(t);
-                        else next.delete(t);
-                        setClusterTeams(Array.from(next));
-                      }}
+        {/* Controls & Actions Bar */}
+        <Card className="bg-card">
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              {/* Seating Controls */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm font-medium whitespace-nowrap">Solver:</Label>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs ${solver === "greedy" ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                      Greedy
+                    </span>
+                    <Switch 
+                      checked={solver === "hungarian"} 
+                      onCheckedChange={(c) => setSolver(c ? "hungarian" : "greedy")} 
                     />
-                    <span className="text-sm">{t}</span>
-                  </label>
-                ))}
+                    <span className={`text-xs ${solver === "hungarian" ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                      Hungarian
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm font-medium whitespace-nowrap">Team Clusters:</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {allTeams.slice(0, 4).map(team => (
+                      <div key={team} className="flex items-center gap-1">
+                        <Checkbox
+                          id={`cluster-${team}`}
+                          checked={clusterTeams.includes(team)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setClusterTeams(prev => [...prev, team]);
+                            } else {
+                              setClusterTeams(prev => prev.filter(t => t !== team));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`cluster-${team}`} className="text-xs cursor-pointer">
+                          {team}
+                        </Label>
+                      </div>
+                    ))}
+                    {allTeams.length > 4 && (
+                      <span className="text-xs text-muted-foreground">+{allTeams.length - 4} more</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                {/* Assign Seats Button */}
+                {(schedule[selectedDay]?.length || 0) > 0 && (
+                  <Button 
+                    onClick={() => assignSeatsForDay(selectedDay)} 
+                    disabled={loading}
+                    className="bg-gradient-primary hover:bg-gradient-primary/80"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <MapPin className="h-4 w-4 mr-2" />
+                    )}
+                    Assign Seats
+                  </Button>
+                )}
+                
+                {/* Clear Assignments Button */}
+                {dayAssignments.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleClearAssignments}
+                    disabled={loading}
+                    className="border-red-300 text-red-600 hover:bg-red-50"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Clear
+                  </Button>
+                )}
+                
+                {/* Export Button */}
+                <Button 
+                  variant="outline" 
+                  onClick={exportLayout} 
+                  disabled={dayAssignments.length === 0}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Warnings */}
-      <WarningsBanner warnings={warnings} />
+        {/* Warnings */}
+        {warnings.length > 0 && (
+          <WarningsBanner warnings={warnings} />
+        )}
 
-      {/* Day Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Scheduled
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dayStats.scheduled}</div>
-            <p className="text-xs text-muted-foreground">employees for {selectedDay}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Assigned Seats
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{dayStats.assigned}</div>
-            <p className="text-xs text-muted-foreground">seats allocated</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{dayStats.unassigned}</div>
-            <p className="text-xs text-muted-foreground">need seats</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Employees</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{legacyEmployees.length}</div>
-            <p className="text-xs text-muted-foreground">total employees</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Seating Map */}
-      {!isDataLoaded ? (
-        <Card className="border-dashed">
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <div className="text-muted-foreground">
-                {loading ? "Loading office data..." : "No data available. Please load employee and seat data from the Dashboard."}
+        {/* Loading State */}
+        {loading && (
+          <Card className="border-dashed">
+            <CardContent className="pt-6 text-center">
+              <div className="flex items-center justify-center gap-2 py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span>Loading seat assignments...</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <SeatingMap 
-          day={selectedDay}
-          assignments={seatAssignments[selectedDay] || {}}
-          seats={legacySeats}
-          employees={legacyEmployees}
-          teamColor={(team: string) => {
-            const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA", "Support"];
-            const index = teams.indexOf(team);
-            if (index === -1) return `team-bg-8`; // Default for unknown teams
-            return `team-bg-${(index % 8) + 1}`;
-          }}
-        />
-      )}
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Team Legend for assigned seats */}
-      {dayAssignments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Team Distribution for {selectedDay}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Array.from(new Set(legacyEmployees.map(e => e.team))).map((team) => {
-                const teamAssignedToday = dayAssignments.filter(assignment => {
-                  const emp = legacyEmployees.find(e => e.id === assignment.employee_id);
-                  return emp?.team === team;
-                }).length;
-                
-                if (teamAssignedToday === 0) return null;
-                
-                const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA", "Support"];
-                const index = teams.indexOf(team);
-                if (index === -1) return `team-bg-8`; // Default for unknown teams
-                const teamBgClass = `team-bg-${(index % 8) + 1}`;
-                
-                return (
-                  <div key={team} className="relative group">
-                    <div className={`${teamBgClass} text-white p-3 rounded-lg shadow-sm border border-white/20`}>
-                      <div className="font-semibold text-sm">{team}</div>
-                      <div className="text-xs opacity-90">
-                        {teamAssignedToday} assigned
+        {/* No Data State */}
+        {!loading && (schedule[selectedDay]?.length || 0) === 0 && (
+          <Card className="border-dashed">
+            <CardContent className="pt-6 text-center">
+              <div className="space-y-4 py-8">
+                <Users className="h-16 w-16 mx-auto text-muted-foreground" />
+                <div>
+                  <h3 className="text-lg font-semibold">No Schedule for {selectedDay}</h3>
+                  <p className="text-muted-foreground mt-1">
+                    Go to the Schedule page to generate a schedule first.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Seating Map Component */}
+        {(schedule[selectedDay]?.length || 0) > 0 && (
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                Office Layout - {selectedDay}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <SeatingMap
+                day={selectedDay}
+                assignments={seatAssignments[selectedDay] || {}}
+                seats={legacySeats}
+                employees={legacyEmployees}
+                teamColor={(team: string) => {
+                  const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA", "Support"];
+                  const index = teams.indexOf(team);
+                  if (index === -1) return `team-bg-8`; // Default for unknown teams
+                  return `team-bg-${(index % 8) + 1}`;
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Team Distribution Legend */}
+        {dayAssignments.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Team Distribution for {selectedDay}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Array.from(new Set(legacyEmployees.map(e => e.team))).map((team) => {
+                  const teamAssignedToday = dayAssignments.filter(assignment => {
+                    const emp = legacyEmployees.find(e => e.id === assignment.employee_id);
+                    return emp?.team === team;
+                  }).length;
+                  
+                  if (teamAssignedToday === 0) return null;
+                  
+                  const teams = ["Network", "CoreOps", "Design", "Sales", "Ops", "Data", "QA", "Support"];
+                  const index = teams.indexOf(team);
+                  const teamBgClass = index === -1 ? `team-bg-8` : `team-bg-${(index % 8) + 1}`;
+                  
+                  return (
+                    <div key={team} className="relative group">
+                      <div className={`${teamBgClass} text-white p-3 rounded-lg shadow-sm border border-white/20`}>
+                        <div className="font-semibold text-sm">{team}</div>
+                        <div className="text-xs opacity-90">
+                          {teamAssignedToday} assigned
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Current Data Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Current Data Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <div className="font-medium">Employees: {legacyEmployees.length}</div>
-              <div className="text-muted-foreground">
-                Teams: {Array.from(new Set(legacyEmployees.map(e => e.team))).length}
+                  );
+                })}
               </div>
-            </div>
-            <div>
-              <div className="font-medium">Seats: {legacySeats.length}</div>
-              <div className="text-muted-foreground">
-                Floors: {Array.from(new Set(legacySeats.map(s => s.floor))).length}
-              </div>
-            </div>
-            <div>
-              <div className="font-medium">Schedule: {Object.values(schedule).flat().length}</div>
-              <div className="text-muted-foreground">
-                Total weekly assignments
-              </div>
-            </div>
-            <div>
-              <div className="font-medium">Assignments: {dayAssignments.length}</div>
-              <div className="text-muted-foreground">
-                Seats for {selectedDay}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
