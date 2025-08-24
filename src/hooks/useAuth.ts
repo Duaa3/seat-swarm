@@ -24,45 +24,67 @@ export const useAuth = () => {
 
   useEffect(() => {
     console.log('useAuth: Setting up auth listener');
+    let isMounted = true;
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+        
         console.log('useAuth: Auth state changed', event, !!session);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           // Fetch profile and role immediately
-          await Promise.all([
-            fetchUserProfile(session.user.id),
-            fetchUserRole(session.user.id)
-          ]);
+          try {
+            await Promise.all([
+              fetchUserProfile(session.user.id),
+              fetchUserRole(session.user.id)
+            ]);
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+          }
         } else {
           setProfile(null);
           setUserRole(null);
         }
-        setLoading(false);
+        
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     );
 
     // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return;
+      
       console.log('useAuth: Initial session check', !!session);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
         // Fetch profile and role immediately
-        await Promise.all([
-          fetchUserProfile(session.user.id),
-          fetchUserRole(session.user.id)
-        ]);
+        try {
+          await Promise.all([
+            fetchUserProfile(session.user.id),
+            fetchUserRole(session.user.id)
+          ]);
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
       }
-      setLoading(false);
+      
+      if (isMounted) {
+        setLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
