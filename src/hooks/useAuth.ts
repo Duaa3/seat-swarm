@@ -24,15 +24,21 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('useAuth: Setting up auth listener');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        console.log('useAuth: Auth state changed', event, !!session);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await fetchUserProfile(session.user.id);
-          await fetchUserRole(session.user.id);
+          // Use setTimeout to prevent blocking the auth callback
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+            fetchUserRole(session.user.id);
+          }, 0);
         } else {
           setProfile(null);
           setUserRole(null);
@@ -42,13 +48,17 @@ export const useAuth = () => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('useAuth: Initial session check', !!session);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        await fetchUserProfile(session.user.id);
-        await fetchUserRole(session.user.id);
+        // Use setTimeout to prevent blocking
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+          fetchUserRole(session.user.id);
+        }, 0);
       }
       setLoading(false);
     });
