@@ -9,7 +9,6 @@ export interface UserProfile {
   department: string | null;
   team: string | null;
   avatar_url: string | null;
-  role: string;
 }
 
 export interface UserRole {
